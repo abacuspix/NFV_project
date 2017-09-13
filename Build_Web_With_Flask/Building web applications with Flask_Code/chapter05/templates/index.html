@@ -1,0 +1,47 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+  </head>
+  <body>
+    <div class="container">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <ul class=flashes>
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action=".">{{ form.csrf_token }}
+        <div>
+          {{ form.name.label }}
+          {{ form.name(required='required') }}
+
+          {% if form.name.errors %}
+          {{ form.name.errors }}
+          {% endif %}
+        </div>
+        <div>
+          {{ form.birthday.label }}
+          {{ form.birthday(type='date', required='required') }}
+
+          {% if form.birthday.errors %}
+          {{ form.birthday.errors }}
+          {% endif %}
+        </div>
+        <input type="submit" class="btn btn-default" />
+        <input type="reset" class="btn btn-default" />
+      </form>
+      <ul>
+        {% for employee in employee_list %}
+        <li>{{ employee }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </body>
+</html>

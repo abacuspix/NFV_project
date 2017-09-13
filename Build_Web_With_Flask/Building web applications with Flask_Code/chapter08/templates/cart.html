@@ -1,0 +1,16 @@
+<html>
+<head>
+  <title>Cart</title>
+</head>
+<body>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+  <ul>
+    {% for message in messages %}
+    <li>{{ message }}</li>
+    {% endfor %}
+  {% endif %}
+  </ul>
+{% endwith %}
+</body>
+</html>

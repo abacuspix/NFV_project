@@ -1,0 +1,8 @@
+[
+    {"id": 1, "name": "John Doe", "gender": "U"},
+    {"id": 2, "name": "John Mango", "gender": "M"},
+    {"id": 3, "name": "John Little", "gender": "M"},
+    {"id": 4, "name": "Marie Mango", "gender": "F"},
+    {"id": 5, "name": "Lu Little", "gender": "U"},
+    {"id": 6, "name": "Rose Candy", "gender": "F"}
+]

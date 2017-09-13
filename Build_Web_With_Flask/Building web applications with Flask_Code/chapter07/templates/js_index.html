@@ -1,0 +1,19 @@
+<html>
+<head><title>Hello You</title>
+</head>
+<body>
+<span id="fillme"></span>
+
+<!-- Loading JQuery from CDN -->
+<!-- what's a CDN? http://www.rackspace.com/knowledge_center/article/what-is-a-cdn -->
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $.getJSON("{{ url_for('.text_view') }}",
+    function(data){
+       $('#fillme').text(data['text']);
+    });
+  });
+</script>
+</body>
+</html>

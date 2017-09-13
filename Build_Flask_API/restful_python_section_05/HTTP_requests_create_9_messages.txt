@@ -1,0 +1,17 @@
+http POST :5000/api/messages/ message="Initializing light controller" duration=25 category="Information"
+
+http POST :5000/api/messages/ message="Initializing light sensor" duration=20 category="Information"
+
+http POST :5000/api/messages/ message="Checking pressure sensor" duration=18 category="Information"
+
+http POST :5000/api/messages/ message="Checking gas sensor" duration=14 category="Information"
+
+http POST :5000/api/messages/ message="Setting ADC resolution" duration=22 category="Information"
+
+http POST :5000/api/messages/ message="Setting sample rate" duration=15 category="Information"
+
+http POST :5000/api/messages/ message="Initializing pressure sensor" duration=18 category="Information"
+
+http POST :5000/api/messages/ message="Initializing gas sensor" duration=16 category="Information"
+
+http POST :5000/api/messages/ message="Initializing proximity sensor" duration=5 category="Information"

@@ -1,0 +1,31 @@
+<html>
+<head>
+    <title>Our Login Form</title>
+</head>
+<body>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul class='messages'>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <h3>Login Form</h3>
+    <form method='post' action='.'>{{ form.csrf_token }}
+        {% for field in form if field.name != 'csrf_token' %}
+            <div class="field">
+            {{ field.label }} {{ field }}
+            </div>
+            {% if field.errors %}
+                {% for error in field.errors %}
+                <div class="field_error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+        <input type='submit' value="submit" />
+    </form>
+</body>
+</html>
