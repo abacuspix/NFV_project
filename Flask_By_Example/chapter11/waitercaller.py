@@ -1,5 +1,6 @@
 import datetime
 
+import config
 from flask import Flask
 from flask import redirect
 from flask import render_template
@@ -10,8 +11,6 @@ from flask.ext.login import current_user
 from flask.ext.login import login_required
 from flask.ext.login import login_user
 from flask.ext.login import logout_user
-
-import config
 
 if config.test:
     from mockdbhelper import MockDBHelper as DBHelper
