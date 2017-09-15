@@ -29,11 +29,11 @@ with open('requirements.txt') as requirements_file:
                          if not req.startswith('-r ')])
 
 setup(
-    name='saltpad',
+    name='controller',
     version='0.0.1',
-    description='SaltPad is a GUI tool to manage saltstack deployments + orchestration.',
+    description='controller is a GUI tool to manage NFV deployments + orchestration.',
     long_description=readme + '\n\n' + history,
-    author='Boris FELD',
+    author='Simon Tian',
     author_email='boris.feld@tinyclues.com',
     url='https://github.com/tinyclues/saltpad',
     packages=[

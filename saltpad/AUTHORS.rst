@@ -5,9 +5,5 @@ Credits
 Development Lead
 ----------------
 
-* Boris FELD <boris.feld@tinyclues.com>
+* Simon Tian <simon.tianyuan@gmail.com>
 
-Contributors
-------------
-
-None yet. Why not be the first?

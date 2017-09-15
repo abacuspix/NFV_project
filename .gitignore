@@ -97,3 +97,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+.idea/dataSources.local.xml
+.idea/workspace.xml
+saltpad/orchestrator/

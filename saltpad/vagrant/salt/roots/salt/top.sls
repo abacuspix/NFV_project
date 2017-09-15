@@ -1,5 +1,0 @@
-base:
-    '*':
-        - saltapi
-        - saltpad
-        - sample
