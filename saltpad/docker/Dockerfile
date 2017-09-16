@@ -1,5 +1,5 @@
 FROM centos:centos7
-MAINTAINER Alex Leonhardt <aleonhardt.py@gmail.com>
+MAINTAINER Simon
 
 RUN yum -y install epel-release
 RUN yum -y install python-devel python-pip python-setuptools git
