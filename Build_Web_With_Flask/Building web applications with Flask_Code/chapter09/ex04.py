@@ -1,10 +1,10 @@
 # coding:utf-8
 
 from flask import Flask
-from flask.ext.admin import Admin
-from flask.ext.admin.contrib.sqla import ModelView
-from flask.ext.login import UserMixin
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
 
 
 db = SQLAlchemy()
@@ -54,6 +54,7 @@ def app_factory(name=__name__):
     app = Flask(name)
     app.debug = True
     app.config['SECRET_KEY'] = 'secret'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 'True'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/ex04.db'
 
     db.init_app(app)

@@ -1,13 +1,13 @@
 # coding:utf-8
 
 from flask import Flask, url_for
-from flask.ext.restless import APIManager
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_restless import APIManager
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employees.sqlite'
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employees1.sqlite'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 'True'
 db = SQLAlchemy(app)
 
 
@@ -24,6 +24,7 @@ class Article(db.Model):
     def url(self):
         return url_for('.articles', article_id=self.id)
 
+
 # create the Flask-Restless API manager
 manager = APIManager(app, flask_sqlalchemy_db=db)
 
@@ -31,7 +32,6 @@ manager = APIManager(app, flask_sqlalchemy_db=db)
 manager.create_api(Article, collection_name='articles', methods=['GET', 'POST', 'PUT', 'DELETE'])
 
 db.create_all()
-
 
 if __name__ == '__main__':
     # we define the debug environment only if running through command line

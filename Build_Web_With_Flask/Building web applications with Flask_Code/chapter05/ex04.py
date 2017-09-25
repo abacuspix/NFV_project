@@ -1,7 +1,8 @@
 # coding:utf-8
 
-from mongoengine import *
 from datetime import datetime
+
+from mongoengine import *
 
 # as the mongo daemon, mongod, is running locally, we just need the database name to connect
 connect('example')
@@ -13,6 +14,7 @@ class Employee(Document):
 
     def __unicode__(self):
         return u'employee %s' % self.name
+
 
 employee = Employee()
 employee.name = 'rosie rinn'

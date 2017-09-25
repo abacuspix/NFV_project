@@ -1,8 +1,8 @@
 # coding:utf-8
 
 from flask import Flask, flash, redirect, render_template
-from flask_mongoengine import MongoEngine
 from flask.ext.mongoengine.wtf import model_form
+from flask_mongoengine import MongoEngine
 from flask_wtf import Form
 
 app = Flask(__name__)

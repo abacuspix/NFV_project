@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, render_template, url_for
 from flask_wtf import Form
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from wtforms.ext.sqlalchemy.orm import model_form
 from flask_wtf.csrf import CsrfProtect
 
@@ -10,8 +10,8 @@ from marshmallow import Schema, fields, ValidationError
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employees.sqlite'
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employees1.sqlite'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = 'True'
 db = SQLAlchemy(app)
 
 

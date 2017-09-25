@@ -1,5 +1,7 @@
 from decimal import Decimal
+
 from flask import request, Blueprint, jsonify
+
 from my_app.catalog.models import Product
 
 catalog = Blueprint('catalog', __name__)
@@ -29,7 +31,7 @@ def products():
     return jsonify(res)
 
 
-@catalog.route('/product-create', methods=['POST',])
+@catalog.route('/product-create', methods=['POST'])
 def create_product():
     name = request.form.get('name')
     key = request.form.get('key')

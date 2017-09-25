@@ -1,9 +1,11 @@
 from functools import wraps
+
 from flask import request, Blueprint, render_template, jsonify, flash, \
     redirect, url_for
+from sqlalchemy.orm.util import join
+
 from my_app import db, app
 from my_app.catalog.models import Product, Category
-from sqlalchemy.orm.util import join
 
 catalog = Blueprint('catalog', __name__)
 
@@ -14,6 +16,7 @@ def template_or_json(template=None):
 
     @template_or_json('template.html')
     """
+
     def decorated(f):
         @wraps(f)
         def decorated_fn(*args, **kwargs):
@@ -22,7 +25,9 @@ def template_or_json(template=None):
                 return jsonify(ctx)
             else:
                 return render_template(template, **ctx)
+
         return decorated_fn
+
     return decorated
 
 
@@ -92,7 +97,7 @@ def product_search(page=1):
     )
 
 
-@catalog.route('/category-create', methods=['POST',])
+@catalog.route('/category-create', methods=['POST', ])
 def create_category():
     name = request.form.get('name')
     category = Category(name)
