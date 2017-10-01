@@ -1,0 +1,9 @@
+127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1 localhost localhost.localdomain localhost6 localhost6.localdomain6
+172.27.103.141 openstack
+172.27.103.142 control-1
+172.27.103.143 control-2
+172.27.103.144 compute-1
+172.27.103.145 compute-2
+
+

@@ -1,0 +1,187 @@
+
+contrail-schema function
+contrail-svc-monitor function-signalling
+
+*******************************************************************************************************************************************
+NOVA issue stack in scheduling
+*******************************************************************************************************************************************
+
+/etc/init.d/nova-api  restart
+/etc/init.d/nova-consoleauth restart
+/etc/init.d/nova-scheduler restart
+/etc/init.d/nova-conductor restart
+/etc/init.d/nova-novncproxy restart
+/etc/init.d/nova-console restart
+
+*******************************************************************************************************************************************
+Heat restart service
+*******************************************************************************************************************************************
+/etc/init.d/heat-api restart
+/etc/init.d/heat-api-cfn restart
+/etc/init.d/heat-engine restart
+
+
+
+*******************************************************************************************************************************************
+Rabbitmq
+*******************************************************************************************************************************************
+
+netstat -untlp | grep 567
+
+ps -ef | grep rabbitmq | grep -v grep | awk '{print $2}' | xargs kill -9; rm -rf /var/lib/rabbitmq/mnesia; service rabbitmq-server restart
+
+rabbitmqctl status
+rabbitmqctl cluster_status
+
+rabbitmqctl list_channels
+
+*******************************************************************************************************************************************
+
+
+*******************************************************************************************************************************************
+Mysql
+*******************************************************************************************************************************************
+
+netstat -untlp | grep 3306
+
+ps -ef | grep mysql | grep -v grep | awk '{print $2}' | xargs kill -9; service mysql start; service mysql start --wsrep_recover
+
+mysql -u cmon -pcmon -e "show status like '%wsrep%';"
+
+*******************************************************************************************************************************************
+
+
+
+*******************************************************************************************************************************************
+Horizon
+*******************************************************************************************************************************************
+
+service apache2 restart; service memcached restart
+
+*******************************************************************************************************************************************
+
+
+*******************************************************************************************************************************************
+Metadata DHCP 注入失败
+*******************************************************************************************************************************************
+Contrail Controller node:
+
+service haproxy restart;service supervisor-config restart
+
+service contrail-schema start
+
+*******************************************************************************************************************************************
+
+
+*******************************************************************************************************************************************
+cassandra
+*******************************************************************************************************************************************
+
+
+*******************************************************************************************************************************************
+
+
+
+
+*******************************************************************************************************************************************
+remove cinder 
+*******************************************************************************************************************************************
+在opsimple上面，找到volume的uuid
+cinder list
+
+
+on openstack controller
+login to mysql 
+
+mysql -u root --password=c67e6d0de376ebc2b0dc
+
+select id,size,host,provider_location from volumes where id='0bc0b724-8c5d-48dd-a759-5acd655bf3d4';
+
+find host and iqn
+iqn.2010-10.org.openstack:volume-0bc0b724-8c5d-48dd-a759-5acd655bf3d4
+
+
+   delete from volume_admin_metadata where volume_id='0bc0b724-8c5d-48dd-a759-5acd655bf3d4';
+
+   delete from volume_glance_metadata where volume_id='0bc0b724-8c5d-48dd-a759-5acd655bf3d4';
+
+delete from volumes where id='0bc0b724-8c5d-48dd-a759-5acd655bf3d4'; 
+
+
+on storage server iscsi 相关
+
+tgtadm --lld iscsi --op show --mode target | grep volume-0bc0b724-8c5d-48dd-a759-5acd655bf3d4
+
+tgtadm --lld iscsi --op delete --mode target --tid=1
+
+tgtadm --lld iscsi --op show --mode target | grep volume-0bc0b724-8c5d-48dd-a759-5acd655bf3d4
+
+
+cinder storage backends node
+
+Control plane  /var/lib/cinder/volumes
+  有ISCSI TARGET的iqn信息 
+
+Data plane /dev/[cinder-volumes-backend-name]/
+  有ISCSI TARGET的device信息
+
+
+Compute node
+
+Control plane  /etc/iscsi/nodes
+有ISCSI TARGET的iqn信息 
+
+Data plane /dev/disk/by-path
+有ISCSI TARGET的device信息
+
+删除volume
+
+lvs
+
+lvremove  /dev/lvmdriver-3/volume-5cda8258-e629-41ce-bdb1-6cc17c8cc189
+
+lvs
+
+
+*******************************************************************************************************************************************
+remove nova instance
+*******************************************************************************************************************************************
+
+nova list
+
+virsh list
+
+virsh destroy 
+
+virsh undefine
+
+f2e3ab79-53e6-4d67-997b-6e98b8752ed0
+
+use nova;
+
+delete from instance_faults where instance_faults.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from instance_id_mappings where instance_id_mappings.uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from instance_info_caches where instance_info_caches.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from instance_system_metadata where instance_system_metadata.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from security_group_instance_association where security_group_instance_association.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from block_device_mapping where block_device_mapping.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from fixed_ips where fixed_ips.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from instance_actions_events where instance_actions_events.action_id in (select id from instance_actions where instance_actions.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0');
+delete from instance_actions where instance_actions.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+delete from virtual_interfaces where virtual_interfaces.instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+
+delete from instance_extra where instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+
+delete from instance_metadata where instance_uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+
+delete from instances where instances.uuid = 'f2e3ab79-53e6-4d67-997b-6e98b8752ed0';
+
+
+delete from event where stack_id='4b2ccdb4-4b86-4bb0-9264-3aeaf13ee240';
+
+delete from resource where stack_id='4b2ccdb4-4b86-4bb0-9264-3aeaf13ee240';
+
+delete from stack where id='4b2ccdb4-4b86-4bb0-9264-3aeaf13ee240'; 
+
+
+

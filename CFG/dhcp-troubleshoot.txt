@@ -1,0 +1,585 @@
+
+api server要使用rabbitmq的VIP，
+改完后，重启haproxy和 supervisor-config
+
+service haproxy restart;service supervisor-config restart
+
+
+  139  service contrail-schema start
+  140  vi /etc/contrail/contrail-schema.conf
+  141  vi /etc/ifmap-server/ifmap.properties 
+  142  service supervisor-config restart
+  143  contrail-status 
+  144  service supervisor-config restart
+  145  vi /etc/contrail/contrail-api.conf 
+  146  service supervisor-config restart
+  147  vi /etc/contrail/contrail-api.conf 
+  148  service supervisor-config restart
+  149  cd /etc/haproxy/
+  150  vi haproxy.cfg 
+  151  cd ..
+  152  cd contrail/
+  153  vi contrail-api.conf 
+  154  service haproxy restart;service supervisor-config restart
+  155  history
+
+
+
+#listen  rabbitmq 0.0.0.0:5673
+#    mode tcp
+#    maxconn 10000
+#    balance roundrobin
+#    option tcpka
+#    option redispatch
+#    timeout client 48h
+#    timeout server 48h
+#    server rabbit1 172.16.0.4:5672 check inter 2000 rise 2 fall 3 weight 1 maxconn 500
+#    server rabbit2 172.16.0.5:5672 check inter 2000 rise 2 fall 3 weight 1 maxconn 500
+#    server rabbit3 172.16.0.6:5672 check inter 2000 rise 2 fall 3 weight 1 maxconn 500
+listen  rabbitmq 0.0.0.0:5673
+    mode tcp
+    maxconn 10000
+    balance leastconn
+    option tcpka
+    option nolinger
+    option forceclose
+    timeout client 0
+    timeout server 0
+    timeout client-fin 60s
+    timeout server-fin 60s
+    server rabbit1 172.16.0.4:5672 weight 200 check inter 2000 rise 2 fall 3
+    server rabbit2 172.16.0.5:5672 weight 100 check inter 2000 rise 2 fall 3 backup
+    server rabbit3 172.16.0.6:5672 weight 100 check inter 2000 rise 2 fall 3 backup
+
+
+root@server02CTL:~# cat /etc/contrail/contrail-api.conf    
+
+[DEFAULTS]
+ifmap_server_ip=172.16.0.5
+ifmap_server_port=8443
+ifmap_username=api-server
+ifmap_password=api-server
+cassandra_server_list=172.16.0.4:9160 172.16.0.5:9160 172.16.0.6:9160
+listen_ip_addr=0.0.0.0
+listen_port=8082
+multi_tenancy=True
+log_file=/var/log/contrail/contrail-api.log
+log_local=1
+log_level=SYS_NOTICE
+disc_server_ip=172.16.0.11
+disc_server_port=5998
+zk_server_ip=172.16.0.4:2181,172.16.0.5:2181,172.16.0.6:2181
+redis_server_ip=$__contrail_redis_ip__
+rabbit_server=172.16.0.11
+#rabbit_server=172.16.0.4,172.16.0.5,172.16.0.6
+rabbit_port=5673
+list_optimization_enabled=True
+auth = keystone
+
+
+
+SERVER01CTL
+
+  621  date
+  622  tail -f schema.err 
+  623  curl -u admin:Juniper321! http://localhost:8095/virtual-mechine-interface/658d6e88-c024-4ca9-beea-614edb1e5309
+  624  curl -u admin:Juniper321! http://localhost:8095/virtual-mechine-interfaces
+  625  curl -u admin:Juniper321! http://localhost:8095/virtual-machine-interfaces
+  626  curl -u admin:Juniper321! http://localhost:8095/virtual-machine-interfaces/658d6e88-c024-4ca9-beea-614edb1e5309
+  627  curl -u admin:Juniper321! http://localhost:8095/virtual-machine-interface/658d6e88-c024-4ca9-beea-614edb1e5309
+  628  curl -u admin:Juniper321! http://localhost:8095/virtual-machine-interface/658d6e88-c024-4ca9-beea-614edb1e5309 | python -m json.tool
+  629  curl -u admin:Juniper321! http://localhost:8095/virtual-machine-interface/658d6e88-c024-4ca9-beea-614edb1e5309 | python -m json.tool | less
+  630  vi schema.err 
+  631  ls
+  632  cat contrail-schema.log | grep sim-simulator2_oam_port-6gegfgrssqd3
+  633  cat contrail-schema.log.1 | grep sim-simulator2_oam_port-6gegfgrssqd3a
+  634  cat 8.log | grep sim-simulator2_oam_port-6gegfgrssqd3a
+  635  cat *.log | grep sim-simulator2_oam_port-6gegfgrssqd3a
+  636  grep sim-simulator2_oam_port-6gegfgrssqd3a *.log
+  637  grep sim-simulator2_oam_port-6gegfgrssqd3a *
+  638  grep sim-simulator2_oam_port-6gegfgrssqd3a *schema*.log.*
+  639  vi contrail-schema-stdout.log 
+  640  vi schema.err 
+  641  vi contrail-schema-stdout.log 
+  642  vi schema.err 
+  643  contrail-status 
+  644  service supervisor-config restart
+  645  contrail-status 
+  646  tail -f /var/log/contrail/schema.err 
+  647  ifmap-view localhost 8443 visual visual > /tmp/ifmap.txt
+  648  vi /tmp/ifmap.txt 
+  649  tail -f /var/log/neutron/server.log
+  650  contrail-status 
+  651  cat /var/log/neutron/server.log
+  652  cat /var/log/neutron/server.log | grep 10.250.0.8 
+  653  cat /var/log/neutron/server.log | grep 10.250.1.3
+  654  cd /var/log/neutron/
+  655  ls
+  656  cat server.log.1 
+  657  cat /var/log/neutron/server.log | grep c632b66c-2479-48e3-b2a2-7d9e3935f64f
+  658  tail -f server.log
+  659  contrail-status 
+  660  service contrail-schema restart
+  661  tail -f /var/log/contrail/schema.err 
+  662  contrail-status 
+  663  contrail-status | grep contrail-schema
+  664  vi /var/log/contrail/schema.err 
+  665  exit
+  666  tail /var/log/contrail/schema.err 
+  667  curl u admin:Juniper321! http://localhost:8095/virtual-machine-interfaces | python -m json.tool | less 
+  668  curl -u admin:Juniper321! http://localhost:8095/virtual-machine-interfaces | python -m json.tool | less 
+  669  vi /tmp/ifmap.txt 
+  670  curl -u admin:Juniper321! http://localhost:8095/instance-ips | python -m json.tool | less 
+  671  curl -u admin:Juniper321! http://localhost:8095/instance-ip/7bbf863f-5245-4520-a414-20e5fa3258cb
+  672  contrailstatus d
+  673  contrail-status d
+  674  contrail-status -d
+  675  vi /var/log/contrail/schema.err
+  676  date
+  677  fg
+  678  vi /tmp/ifmap.txt 
+  679  curl -u admin:Juniper321! http://localhost:8095/virtual-networks | python -m json.tool | less 
+  680  curl -u admin:Juniper321! http://localhost:8095/virtual-network/e493f0a0-fb3b-4b3f-b34c-fbcf3bb427da | python -m json.tool | less 
+  681  cd /var/log/contrail/
+  682  cat /etc/contrail/contrail-api.conf 
+  683  pycassaShell -H 172.160.0.4
+  684  pycassaShell -H 172.16.0.4 -k config_db_
+  685  pycassaShell -H 172.16.0.4 -k config_db_uuid
+  686  grep ea926 contrail-api-0-stdout.log*
+  687  top
+  688  grep saegw-CF2_mgmt_port-daiu2fygwvwc api-0-zk.log*
+  689  history
+  690  grep -i rabbit contrail-api-0-stdout.log*
+  691  vi contrail-api-0-stdout.log.1
+  692  grep -i kombu contrail-api-0-stdout.log
+  693  grep saegw-CF2_mgmt_port-daiu2fygwvwc contrail-api-0-stdout.log
+  694  grep saegw-CF2_mgmt_port-daiu2fygwvwc contrail-api-0-stdout.log.1
+  695  grep daiu2fygwvwc contrail-api-0-stdout.log
+  696  rabbitmqctl list_
+  697  rabbitmqctl list_queues
+  698  vi /etc/contrail/contrail-schema.conf 
+  699  vi /etc/ifmap-server/ifmap.properties 
+  700  contrail-status 
+  701  supervisor-config restart
+  702  service supervisor-config restart
+  703  contrail-status 
+  704  contrail-status -d
+  705  tail -f /var/log/contrail/schema.err 
+  706  ls -ltr /var/log/contrail/schema.err 
+  707  date
+  708  ls -ltr /var/log/contrail/schema.err 
+  709  rabbitmqctl list_queues
+  710  contrail-status -d
+  711  service supervisor-config restart
+  712  vi /etc/contrail/contrail-api.conf 
+  713  service supervisor-config restart
+  714  contrail-status -d
+  715  rabbitmqctl list_queues
+  716  netstat -anp | grep 5673
+  717  vi /etc/contrail/contrail-api.conf 
+  718  rabbitmqctl list_queues
+  719  vi /etc/haproxy/haproxy.cfg 
+  720  rabbitmqctl list_policy
+  721  rabbitmqctl list_policies
+  722  rabbitmqctl list_queues
+  723  vi /etc/haproxy/haproxy.cfg 
+  724  ls -ltr /etc/haproxy/haproxy.cfg 
+  725  rabbitmqctl list_queues
+  726  vi /etc/contrail/contrail-api.conf 
+  727  cd /etc/contrail/
+  728  ls
+  729  ls -latr 
+  730  rm .contrail-api.conf.swp
+  731  ls -latr 
+  732  vi contrail-api.conf 
+  733  contrail-status 
+  734  service supervisor-config restart
+  735  contrail-status -d
+  736  rabbitmqctl list_queues
+  737  cd ..
+  738  cd haproxy/
+  739  ls
+  740  vi haproxy.cfg 
+  741  cd ..
+  742  cd contrail/
+  743  vi contrail-api.conf 
+  744  service haproxy restart;service supervisor-config restart
+  745  dpkg -l | grep rabbitmq
+  746  contrail-status -d
+  747  rabbitmqctl list_queues
+  748  cd /var/log/
+  749  cd contrail/
+  750  vi schema.err 
+  751  vi /tmp/ifmap.txt 
+  752  curl https://gist.githubusercontent.com/ajayhn/9f49f91bd7d0a527fdb5/raw/337f354f56e60bbfe6895fc69bf2da40f8ce17f0/ifmap_search.py > ifmap_search.py
+  753  more ifmapse
+  754  more ifmap_search.py 
+  755  python ifmap_search.py --ifmap-username visual --ifmap-password visual --max-depth 10 --verbose >/tmp/search.txt
+  756  python ifmap_search.py --ifmap-username visual --ifmap-password visual --max-depth 10 --verbose >& /tmp/search.txt
+  757  vi /tmp/search.txt 
+  758  curl -u admin:Juniper321! http://localhost:8095/virtual-machine-interfaces | python -m json.tool | less
+  759  fg
+  760  ifconfig
+  761  vi /etc/contrail/contrail-api.conf 
+  762  netstat -anp | grep 8443
+  763  service 
+  764  service supervisor-config restart
+  765  netstat -anp | grep 8443
+  766  python ifmap_search.py --ifmap-username visual --ifmap-password visual --max-depth 10 --verbose >& /tmp/search2.txt
+  767  vi /tmp/search2.txt
+  768  date
+  769  service contrail-schema stop
+  770  service contrail-schema start
+  771  curl https://gist.githubusercontent.com/ajayhn/9f49f91bd7d0a527fdb5/raw/337f354f56e60bbfe6895fc69bf2da40f8ce17f0/ifmap_search.py > ifmap_search.py
+  772  netstat -anp | grep 8443
+  773  kill -9 8066
+  774  cat /var/log/contrail/schema.err 
+  775  tail -f /var/log/neutron/server.log
+  776  exit
+  777  history
+
+
+
+
+
+
+SERVER02CTL
+
+
+
+
+  188  cat /var/log/neutron/server.log | grep 10.250.0.8
+  189  cat /var/log/neutron/server.log | grep 10.250.1.3
+  190  cat /var/log/neutron/server.log | grep c632b66c-2479-48e3-b2a2-7d9e3935f64f
+  191  tail -f /var/log/neutron/server.log
+  192  contrail-status -d
+  193  cat /etc/neutron/neutron.conf | grep 8774
+  194  pwd
+  195  cd /var/log/contrail/
+  196  grep sim-simulator2_oam_port-6gegfgrssqd3a *schema*.log*
+  197  grep sim-simulator2_oam_port-6gegfgrssqd3a *schema*.log.*
+  198  ls
+  199  contrail-status 
+  200  exit
+  201  contrail-status
+  202  tail -f /var/log/contrail/schema.err 
+  203  contrail-status
+  204  cd /var/log/contrail/
+  205  ls -ltr
+  206  date
+  207  vi schema.err 
+  208  contrail-status 
+  209  ifmap-view localhost 8443 visual visual > /tmp/ifmap.txt
+  210  vi /tmp/ifmap.txt 
+  211  curl -u admin:Juniper321! localhost:8095/instance-ip/7ab6dfcc-4130-4218-96fb-190305667724
+  212  curl -u admin:Juniper321! http://localhost:8095/instance-ip/7ab6dfcc-4130-4218-96fb-190305667724
+  213  service supervisor-config restart
+  214  contrail-status 
+  215  vi /var/log/contrail/schema.err 
+  216  date
+  217  top
+  218  contrail-status d
+  219  contrail-status -d
+  220  vi /var/log/contrail/schema.err 
+  221  tail -f /var/log/contrail/schema.err 
+  222  cd /var/log/contrail/
+  223  grep saegw-CF2_mgmt_port-daiu2fygwvwc api-0-zk.log*
+  224  curl https://gist.githubusercontent.com/ajayhn/9f49f91bd7d0a527fdb5/raw/337f354f56e60bbfe6895fc69bf2da40f8ce17f0/ifmap_search.py > /root/ifmap_search.py
+  225  cd
+  226  python ifmap_search.py --ifmap-username visual --ifmap-password visual --max-depth 10 --verbose >& /tmp/search2.txt
+  227  vi /tmp/search2.txt 
+  228  vi /etc/contrail/contrail-schema.conf
+  229  vi /etc/ifmap-server/ifmap.properties 
+  230  service supervisor-config restart
+  231  contrail-status 
+  232  contrail-status -d
+  233  rabbitmqctl list_queues
+  234  tail -f /var/log/contrail/contrail-api-0-stdout.log
+  235  rabbitmqctl list_queues
+  236  cat /etc/contrail/contrail-api.conf 
+  237  vi /var/log/contrail/contrail-api-0-stdout.log
+  238  ps auxw | grep contrail-api   
+  239  netstat -anp | grep 5673
+  240  rabbitmqctl list_queues
+  241  service contrail-api restart
+  242  rabbitmqctl list_queues
+  243  contrail-status | grep schema
+  244  vi /etc/contrail/contrail-api.conf 
+  245  contrail-status -d
+  246  service supervisor-config restart
+  247  ssh 172.16.0.6
+  248  vi /etc/contrail/contrail-api.conf 
+  249  service supervisor-config restart
+  250  pwd
+  251  cd /etc/haproxy/
+  252  vi haproxy.cfg 
+  253  cd ..
+  254  cd contrail/
+  255  vi contrail-api.conf 
+  256  service haproxy restart;service supervisor-config restart
+  257  history 
+
+
+ SERVER03CTL
+ 42  contrail-status
+   43  cd /var/log/contrail/
+   44  ls
+   45  scp supervisord.* lab@192.168.3.131:/
+   46  scp supervisord-* lab@192.168.3.131:/
+   47  scp svc-* lab@192.168.3.131:/
+   48  scp contrail-svc-* lab@192.168.3.131:/
+   49  exit
+   50  contrail-status
+   51  exit
+   52  contrail-status
+   53  iinit 6
+   54  init 6
+   55  contrail-status
+   56  exit
+   57  init 6
+   58  contrail-status
+   59  exit
+   60  ct /var/log/contrail/
+   61  cd /var/log/contrail/
+   62  tail -f  ifmap-server.log
+   63  cat /var/log/contrail/
+   64  cd /var/log/contrail/
+   65  tail -f  ifmap-server.log
+   66  contrail-status 
+   67  exit
+   68  vim /etc/ssh/sshd_config 
+   69  service ssh restart
+   70  exit
+   71  contrail-status 
+   72  cat /etc/contrail/openstackrc 
+   73  exit
+   74  shutdown now
+   75  contrail-status
+   76  ifconfig
+   77  vim /etc/ssh/sshd_config 
+   78  service ssh restart
+   79  init 6 
+   80  contrail-status
+   81  netstat -untlp | grep 3306
+   82  netstat -untlp 
+   83  init 0 
+   84  contrail-status
+   85  cli
+   86  which contrail-status
+   87  cd /usr/bin
+   88  ls -l contrail*
+   89  ls  contrail*
+   90  contrail-control
+   91  contrail-api
+   92  ls  contrail*
+   93  contrail-status
+   94  cli
+   95  exit
+   96  history
+   97  history 
+   98  init 0 
+   99  contrail-sttaus
+  100  contrail-status
+  101  rabbitmqctl status
+  102  cd /var/log/contrail/
+  103  tail -100f contrail-webui-stdout.log;
+  104  cat /etc/contrail/openstackrc 
+  105  contrail-status
+  106  uptime
+  107  exit
+  108  netstat -untlp | grep 567
+  109  history
+  110  /etc/init.d/contrail-api restart
+  111  /etc/init.d/contrail-schema restart
+  112  contrail-status
+  113  history 
+  114  cat /etc/neutron/neutron.conf | grep 8774
+  115  cd /var/log/contrail/
+  116  ls
+  117  ls -ltr
+  118  ls -ltr schema.err 
+  119  tail -f schema.err 
+  120  grep sim-simulator2_oam_port-6gegfgrssqd3a *schema*.log*
+  121  grep sim-simulator2_oam_port-6gegfgrssqd3a *schema*.log.*
+  122  hema               backup
+  123  contrail-status 
+  124  cat /var/log/neutron/server.log | grep 10.250.0.8
+  125  cat /var/log/neutron/server.log | grep 10.250.1.3
+  126  cat /var/log/neutron/server.log | grep c632b66c-2479-48e3-b2a2-7d9e3935f64f
+  127  tail -f /var/log/neutron/server.log
+  128  service supervisor-config restart
+  129  contrail-status 
+  130  netstat -anp | grep 51306
+  131  netstat -anp | grep 51308
+  132  service contrail-schema stop
+  133  grep saegw-CF2_mgmt_port-daiu2fygwvwc api-0-zk.log*
+  134  cd /var/log/contrail/
+  135  grep saegw-CF2_mgmt_port-daiu2fygwvwc api-0-zk.log*
+  136  date
+  137  exit
+  138  cat /etc/contrail/openstackrc 
+  139  service contrail-schema start
+  140  vi /etc/contrail/contrail-schema.conf
+  141  vi /etc/ifmap-server/ifmap.properties 
+  142  service supervisor-config restart
+  143  contrail-status 
+  144  service supervisor-config restart
+  145  vi /etc/contrail/contrail-api.conf 
+  146  service supervisor-config restart
+  147  vi /etc/contrail/contrail-api.conf 
+  148  service supervisor-config restart
+  149  cd /etc/haproxy/
+  150  vi haproxy.cfg 
+  151  cd ..
+  152  cd contrail/
+  153  vi contrail-api.conf 
+  154  service haproxy restart;service supervisor-config restart
+  155  history
+
+
+
+
+server01OPS
+
+ 1119  ps -ef | grep rabbit
+ 1120  cd /var/lib/rabbitmq/
+ 1121  ll
+ 1122  ls -ltr
+ 1123  rabbitmqctl list_channels
+ 1124  openstack-status 
+ 1125  service nova-conductor restart
+ 1126  openstack-status -d
+ 1127  ps -ef | grep nova-conductor
+ 1128  service nova-conductor status
+ 1129  exit
+ 1130  tail -f /var/log/nova/{nova-api,nova-scheduler}*.log /var/log/vj.log
+ 1131  exit
+ 1132  openstack-status
+ 1133  source /etc/contrail/openstackrc 
+ 1134  keystone user-list
+ 1135  cd /var/log/nova/
+ 1136  ll
+ 1137  tail -f nova-scheduler.log
+ 1138  rabbitmqctl status
+ 1139  history
+ 1140  rabbitmqctl --help 
+ 1141  rabbitmqctl list_users
+ 1142  rabbitmqctl list_permissions
+ 1143  cat /etc/nova/nova.conf | grep rabbit
+ 1144  cat /etc/nova/nova.conf 
+ 1145  rabbitmqctl list_channels
+ 1146  vim /etc/nova/nova.conf 
+ 1147  /etc/init.d/nova-scheduler restart
+ 1148  openstack-status
+ 1149  asdfasdf
+ 1150  history 
+ 1151  /etc/init.d/nova-api restart
+ 1152  /etc/init.d/nova-api status
+ 1153  ll
+ 1154  history 
+ 1155  ls
+ 1156  which glance
+ 1157  cd /home
+ 1158  ls
+ 1159  finger ph503y
+ 1160  cd ph503y
+ 1161  ls
+ 1162  pwd
+ 1163  cd ..
+ 1164  ls
+ 1165  su - ph503y
+ 1166  ks
+ 1167  glance image-list
+ 1168  cat /var/tmp/ceilreadme 
+ 1169  openstack-status
+ 1170  tail -f /var/log/keystone/
+ 1171  tail -f /var/log/keystone/keystone.log
+ 1172  cd /etc/rabbitmq/
+ 1173  ls
+ 1174  cat rabbitmq.config 
+ 1175  ls
+ 1176  cd ..
+ 1177  cd keystone/
+ 1178  cat keystone.conf 
+ 1179  cat keystone.conf | grep rabbit
+ 1180  vi keystone.conf 
+ 1181  tail -f /var/log/keystone/keystone.log
+ 1182  service nova-api restart
+ 1183  service nova-scheduler restart
+ 1184  tail -f /var/log/nova/nova-conductor.log
+ 1185  ps -ef|grep rabbitmq 
+ 1186  glance image-list
+ 1187  source /etc/contrail/openstackrc 
+ 1188  glance image-list
+ 1189  openstack-status 
+ 1190  cat /etc/contrail/openstackrc 
+ 1191  export OS_USERNAME=admin
+ 1192  export OS_PASSWORD=Juniper321!
+ 1193  export OS_TENANT_NAME=vMMSC
+ 1194  export OS_AUTH_URL=http://172.16.0.1:6000/v2.0/
+ 1195  export OS_NO_CACHE=1
+ 1196  neutron port-list | grep sim-simulator2_oam_port-6gegfgrssqd3
+ 1197  neutron net-list 
+ 1198  neutron net-list | less
+ 1199  cd /opt/contrail/utils/fabfile/
+ 1200  ll
+ 1201  cat fabfile.py
+ 1202  cat /etc/contrail/openstackrc 
+ 1203  export OS_USERNAME=admin
+ 1204  export OS_PASSWORD=Juniper321!
+ 1205  export OS_TENANT_NAME=vMMSC
+ 1206  export OS_AUTH_URL=http://172.16.0.1:6000/v2.0/
+ 1207  export OS_NO_CACHE=1
+ 1208  neutron port-show sim-simulator2_core_port-qheypy3zi62e
+ 1209  neutron port-show sim-simulator2_core_port
+ 1210  neutron port-list | grep sim-simulator2_core_port
+ 1211  heat stack-list
+ 1212  heat stack-show SIM
+ 1213  rabbitmqctl list_queues
+ 1214  exit
+ 1215  netstat -anp | grep 5673
+ 1216  cd /etc/contrail/
+ 1217  ls
+ 1218  cd ..
+ 1219  ls
+ 1220  vi haproxy/haproxy.cfg 
+
+
+SERVER02OPS
+
+
+  344  rabbitmqctl status
+  345  rabbitmqctl cluster_status
+  346  service contrail-hamon status
+  347  cat /etc/contrail/ha/cmon_param 
+  348  ps aux | grep contrail
+  349  ps -ef | grep contrail
+  350  ps -ef | grep ha
+  351  netstat -untlp | grep 567
+  352  cd /var/log/nova/
+  353  tail -f nova-scheduler.log
+  354  vim /usr/lib/python2.7/dist-packages/oslo/messaging/_drivers/impl_rabbit.py
+  355  vim /etc/nova/nova.conf 
+  356  /etc/init.d/nova-scheduler restart
+  357  openstack-status
+  358  openstack-status
+  359  /etc/init.d/nova-api  status
+  360  history 
+  361  service nova-conductor restart
+  362  service nova-api restart
+  363  service nova-scheduler restart
+
+
+
+SERVER03OPS
+
+  327  /etc/init.d/nova-scheduler status
+  328  /etc/init.d/nova-api status
+  329  history 
+  330  service nova-conductor restart
+  331  service nova-api restart
+  332  service nova-scheduler restart
+  333  ps -ef|grep rabbitmq 
+  334  history
+
+

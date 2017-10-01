@@ -1,0 +1,559 @@
+provision local disk array
+
+upload iso file and install base ubuntu distribution
+
+dns server use 8.8.8.8
+
+
+modify qfx5100-48s-1 vlan access
+
+clean up storage
+
+lvremove
+vgremove
+pvremove
+
+parted /dev/sdb mklabel msdos
+parted /dev/sdc mklabel msdos
+
+ssh-keygen -f "/root/.ssh/known_hosts" -R compute004
+
+ssh-keygen -f "/root/.ssh/known_hosts" -R compute005
+
+==============================================================================================================
+
+PART I pre-flight 
+
+==============================================================================================================
+1.0 
+
+on server01
+
+upload contrail-install-packages_3.0.0.0-2723~kilo_all.deb to /var/tmp
+
+
+1.1 pre-check hostname/internet access/dns/etchosts/ntp/ssh-copy-id
+
+all nodes
+
+vim /etc/hosts
+127.0.0.1        localhost
+172.20.214.200   server00.etlab.com          server00
+172.20.214.201   server01.etlab.com          server01
+172.20.214.202   server02.etlab.com          server02
+172.20.214.203   server03.etlab.com          server03
+172.20.214.211   server11.etlab.com          server11
+172.20.214.212   server12.etlab.com          server12
+172.20.214.213   server13.etlab.com          server13
+172.20.214.221   compute001.etlab.com        compute001
+172.20.214.222   compute002.etlab.com        compute002
+172.20.214.223   compute003.etlab.com        compute003
+172.20.214.224   compute004.etlab.com        compute004
+172.20.214.225   compute005.etlab.com        compute005
+
+
+apt-get install -y ntp 
+sed -i "/server [0-3].ubuntu.pool.ntp.org/d"  /etc/ntp.conf
+sed -i "s@ntp.ubuntu.com@172.20.214.200@g" /etc/ntp.conf
+service ntp restart
+ntpq -p
+
+/etc/issue.net
+*********************************************************
+*                                                       *
+*                      WARNING!!!!!                     *
+*                                                       *
+*       This system is restricted to AT&T Mobility      *
+*         authorized users for business purposes.       *
+*                                                       *
+*     Unauthorized access is a violation of the law.    *
+*   This service may be monitored for administrative    *
+*                  and security reasons.                *
+*    By proceeding, you consent to this monitoring.     *
+*                                                       *
+*                      WARNING!!!!!                     *
+*                                                       *
+*********************************************************
+
+1.2 ssh-keygen on all nodes and script running node (node-1) ssh-copy-id all nodes (includes itself ssh-key)
+
+all nodes
+ssh-keygen
+
+on server01
+
+ssh-copy-id server01
+ssh-copy-id server02
+ssh-copy-id server03
+ssh-copy-id server11
+ssh-copy-id server12
+ssh-copy-id server13
+ssh-copy-id compute001
+ssh-copy-id compute002
+ssh-copy-id compute003
+ssh-copy-id compute004
+ssh-copy-id compute005
+ssh-copy-id ph503y@172.20.210.50
+
+======================================================================================================
+modify swap size compute001-compute005 
+======================================================================================================
+change compute001 to compute005
+vgs
+lvdisplay
+
+swapoff /dev/compute004-vg/swap_1
+lvreduce -L 16G /dev/compute004-vg/swap_1 
+mkswap /dev/compute004-vg/swap_1
+swapon /dev/compute004-vg/swap_1
+
+lvextend -L 170G /dev/compute004-vg/root
+resize2fs -p /dev/compute004-vg/root
+
+
+
+swapoff /dev/compute005-vg/swap_1
+lvreduce -L 16G /dev/compute005-vg/swap_1 
+mkswap /dev/compute005-vg/swap_1
+swapon /dev/compute005-vg/swap_1
+
+lvextend -L 170G /dev/compute005-vg/root
+resize2fs -p /dev/compute005-vg/root
+
+
+fab install_pkg_node:/var/tmp/contrail-install-packages_3.0.0.0-2723~kilo_all.deb,root@172.20.214.224,root@172.20.214.225
+fab upgrade_kernel_node:root@172.20.214.224,root@172.20.214.225
+
+fab add_vrouter_node:root@172.20.214.224,root@172.20.214.225
+
+======================================================================================================
+cleanup storage server disk if already partioned by GPT
+======================================================================================================
+
+****important****
+
+server01 server02 server03 server11 server12 server13
+
+****important****
+
+parted /dev/sdb mklabel msdos
+parted /dev/sdc mklabel msdos
+
+==============================================================================================================
+
+PART II main install  ET 90 minutes
+
+==============================================================================================================
+
+on shutgun
+provide the testbed.py
+provide logo1 and logo2
+
+
+cd /var/tmp
+
+dpkg -i contrail-install-packages_3.0.0.0-2723~kilo_all.deb
+
+/opt/contrail/contrail_packages/setup.sh
+
+
+cp /var/tmp/testbed.py /opt/contrail/utils/fabfile/testbed
+
+
+fab install_pkg_all:/var/tmp/contrail-install-packages_3.0.0.0-2723~kilo_all.deb
+fab upgrade_kernel_all
+
+
+fab install_contrail 
+
+fab setup_interface
+fab add_static_route
+
+fab setup_all
+
+
+==============================================================================================================
+
+PART III Cinder install  ET 30 minutes
+
+==============================================================================================================
+
+on server01
+
+scp ph503y@172.20.210.50:/home/ph503y/henonis-utils-3.0-2723GA-1.sh /usr/bin/henonis-utils
+
+chmod u+x /usr/bin/henonis-utils
+
+mysql -u root --password=c67e6d0de376ebc2b0dc
+                                                     
+henonis-utils --mode cindersetupdb --dbpassword c67e6d0de376ebc2b0dc --dbhostname server01
+
+mysql -u root --password=c67e6d0de376ebc2b0dc  -e "select Host,User from mysql.user where User='cinder';"
+
+==============================================================================================================
+
+source /etc/contrail/openstackrc
+
+check if "volume" service is in catalog
+keystone catalog
+
+
+keystone service-create --name=cinder --type=volume --description="volume"
+
+keystone endpoint-create \
+--service-id=$(keystone service-list | awk '/ volume / {print $2}') \
+--publicurl=http://172.20.214.205:8776/v2/%\(tenant_id\)s \
+--internalurl=http://172.16.0.10:8776/v2/%\(tenant_id\)s \
+--adminurl=http://172.16.0.10:8776/v2/%\(tenant_id\)s \
+--region RegionOne
+
+
+keystone service-create --name=cinderv2 --type=volumev2 --description="volumev2"
+
+keystone endpoint-create \
+--service-id=$(keystone service-list | awk '/ volumev2 / {print $2}') \
+--publicurl=http://172.20.214.205:8776/v2/%\(tenant_id\)s \
+--internalurl=http://172.16.0.10:8776/v2/%\(tenant_id\)s \
+--adminurl=http://172.16.0.10:8776/v2/%\(tenant_id\)s \
+--region RegionOne
+
+vim openstackrc 
+export OS_USERNAME=admin
+export OS_PASSWORD=Jncie841!
+export OS_TENANT_NAME=admin
+export OS_AUTH_URL=http://172.16.0.10:5000/v2.0/
+export OS_VOLUME_API_VERSION=2
+export OS_NO_CACHE=1
+
+
+==============================================================================================================
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.201 \
+--storageif p1p2 --storageifaddr 173.16.0.1 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.202 \
+--storageif p1p2 --storageifaddr 173.16.0.2 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.203 \
+--storageif p1p2 --storageifaddr 173.16.0.3 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.211 \
+--storageif p1p2 --storageifaddr 173.16.0.4 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.212 \
+--storageif p1p2 --storageifaddr 173.16.0.5 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.213 \
+--storageif p1p2 --storageifaddr 173.16.0.6 --storageifmask 255.255.255.240
+
+
+server01-server03 server11-server13
+echo "        post-up route add -net 173.16.0.0 netmask 255.255.255.0 gw 173.16.0.14" >> /etc/network/interfaces
+ifdown p1p2 && ifup p1p2
+
+
+
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.221 \
+--storageif p1p2 --storageifaddr 173.16.0.21 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.222 \
+--storageif p1p2 --storageifaddr 173.16.0.22 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.223 \
+--storageif p1p2 --storageifaddr 173.16.0.23 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.224 \
+--storageif p1p2 --storageifaddr 173.16.0.24 --storageifmask 255.255.255.240
+
+henonis-utils --mode cindersetupif \
+--targethostip 172.20.214.225 \
+--storageif p1p2 --storageifaddr 173.16.0.25 --storageifmask 255.255.255.240
+
+
+compute001-compute005
+echo "        post-up route add -net 173.16.0.0 netmask 255.255.255.0 gw 173.16.0.30" >> /etc/network/interfaces
+ifdown p1p2 && ifup p1p2
+
+==============================================================================================================
+
+henonis-utils --mode cindersetupcontroller \
+--targethostip 172.20.214.201 \
+--myip 173.16.0.1 \
+--rabbithostip 172.16.0.11 \
+--authhostip 172.16.0.10 \
+--adminpasswordstring Jncie841! \
+--ha enable
+
+henonis-utils --mode cindersetupcontroller \
+--targethostip 172.20.214.202 \
+--myip 173.16.0.2 \
+--rabbithostip 172.16.0.11 \
+--authhostip 172.16.0.10 \
+--adminpasswordstring Jncie841! \
+--ha enable
+
+henonis-utils --mode cindersetupcontroller \
+--targethostip 172.20.214.203 \
+--myip 173.16.0.3 \
+--rabbithostip 172.16.0.11 \
+--authhostip 172.16.0.10 \
+--adminpasswordstring Jncie841! \
+--ha enable
+
+==============================================================================================================
+
+henonis-utils --mode cindersetupstorage \
+--targethostip 172.20.214.211 \
+--cinderdisk1 /dev/sdb --cinderdisk2 /dev/sdc --cinderbackendname lvmdriver-1 \
+--myip 173.16.0.4 \
+--rabbithostip 172.16.0.11 \
+--authhostip 172.16.0.10 --adminpasswordstring Jncie841! \
+--ha enable
+
+
+henonis-utils --mode cindersetupstorage \
+--targethostip 172.20.214.212 \
+--cinderdisk1 /dev/sdb --cinderdisk2 /dev/sdc --cinderbackendname lvmdriver-2 \
+--myip 173.16.0.5 \
+--rabbithostip 172.16.0.11 \
+--authhostip 172.16.0.10 --adminpasswordstring Jncie841! \
+--ha enable
+
+
+henonis-utils --mode cindersetupstorage \
+--targethostip 172.20.214.213 \
+--cinderdisk1 /dev/sdb --cinderdisk2 /dev/sdc --cinderbackendname lvmdriver-3 \
+--myip 173.16.0.6 \
+--rabbithostip 172.16.0.11 \
+--authhostip 172.16.0.10 --adminpasswordstring Jncie841! \
+--ha enable
+
+
+===============================================================================================================
+PART IV Swift install 30 minutes
+===============================================================================================================
+
+source /etc/contrail/openstackrc
+
+keystone user-create --name swift --pass Jncie841! --email swift@example.com
+
+keystone user-role-add --user swift --tenant service --role admin
+
+keystone service-create --name swift --type object-store --description "Object Storage"
+
+keystone endpoint-create \
+  --service-id $(keystone service-list | awk '/ object-store / {print $2}') \
+  --publicurl 'http://172.20.214.205:8080/v1/AUTH_%(tenant_id)s' \
+  --internalurl 'http://172.16.0.10:8080/v1/AUTH_%(tenant_id)s' \
+  --adminurl http://172.16.0.10:8080 \
+  --region RegionOne
+
+===============================================================================================================
+
+henonis-utils --mode swifthasetup \
+--targethostip 172.20.214.201 \
+--swift_server_name1 server01 \
+--swift_server_name2 server02 \
+--swift_server_name3 server03 \
+--swift_control_data_ip1 173.16.0.1 \
+--swift_control_data_ip2 173.16.0.2 \
+--swift_control_data_ip3 173.16.0.3
+
+
+henonis-utils --mode swifthasetup \
+--targethostip 172.20.214.202 \
+--swift_server_name1 server01 \
+--swift_server_name2 server02 \
+--swift_server_name3 server03 \
+--swift_control_data_ip1 173.16.0.1 \
+--swift_control_data_ip2 173.16.0.2 \
+--swift_control_data_ip3 173.16.0.3
+
+
+henonis-utils --mode swifthasetup \
+--targethostip 172.20.214.203 \
+--swift_server_name1 server01 \
+--swift_server_name2 server02 \
+--swift_server_name3 server03 \
+--swift_control_data_ip1 173.16.0.1 \
+--swift_control_data_ip2 173.16.0.2 \
+--swift_control_data_ip3 173.16.0.3
+
+===============================================================================================================
+
+henonis-utils --mode swift \
+--targethostip 172.20.214.201 \
+--swift_control_data_ip 173.16.0.1 \
+--authhostip 1.172.16.0.10 --adminpasswordstring Jncie841! \
+--swift_disk_1 /dev/sdb --swift_disk_name_1 sdb --swift_disk_1_size 190000 \
+--swift_disk_2 /dev/sdc --swift_disk_name_2 sdc --swift_disk_2_size 190000 
+
+
+henonis-utils --mode swift \
+--targethostip 172.20.214.202 \
+--swift_control_data_ip 173.16.0.2 \
+--authhostip 172.16.0.10 --adminpasswordstring Jncie841! \
+--swift_disk_1 /dev/sdb --swift_disk_name_1 sdb --swift_disk_1_size 190000 \
+--swift_disk_2 /dev/sdc --swift_disk_name_2 sdc --swift_disk_2_size 190000 
+
+
+henonis-utils --mode swift \
+--targethostip 172.20.214.203 \
+--swift_control_data_ip 173.16.0.3 \
+--authhostip 172.16.0.10 --adminpasswordstring Jncie841! \
+--swift_disk_1 /dev/sdb --swift_disk_name_1 sdb --swift_disk_1_size 190000 \
+--swift_disk_2 /dev/sdc --swift_disk_name_2 sdc --swift_disk_2_size 190000 
+
+==============================================================================================================
+
+on swift proxy & storage node
+
+==============================================================================================================
+cd /etc/swift
+swift-ring-builder account.builder create 10 2 1
+swift-ring-builder account.builder add r1z1-173.16.0.1:6002/sdb1 100
+swift-ring-builder account.builder add r1z1-173.16.0.1:6002/sdc1 100
+swift-ring-builder account.builder add r1z1-173.16.0.2:6002/sdb1 100
+swift-ring-builder account.builder add r1z1-173.16.0.2:6002/sdc1 100
+swift-ring-builder account.builder add r1z1-173.16.0.3:6002/sdb1 100
+swift-ring-builder account.builder add r1z1-173.16.0.3:6002/sdc1 100
+swift-ring-builder account.builder rebalance
+swift-ring-builder account.builder
+=======================================================================
+swift-ring-builder container.builder create 10 2 1
+swift-ring-builder container.builder add r1z1-173.16.0.1:6001/sdb1 100
+swift-ring-builder container.builder add r1z1-173.16.0.1:6001/sdc1 100
+swift-ring-builder container.builder add r1z1-173.16.0.2:6001/sdb1 100
+swift-ring-builder container.builder add r1z1-173.16.0.2:6001/sdc1 100
+swift-ring-builder container.builder add r1z1-173.16.0.3:6001/sdb1 100
+swift-ring-builder container.builder add r1z1-173.16.0.3:6001/sdc1 100
+swift-ring-builder container.builder rebalance
+swift-ring-builder container.builder 
+=======================================================================
+swift-ring-builder object.builder create 10 2 1
+swift-ring-builder object.builder add r1z1-173.16.0.1:6003/sdb1 100
+swift-ring-builder object.builder add r1z1-173.16.0.1:6003/sdc1 100
+swift-ring-builder object.builder add r1z1-173.16.0.2:6003/sdb1 100
+swift-ring-builder object.builder add r1z1-173.16.0.2:6003/sdc1 100
+swift-ring-builder object.builder add r1z1-173.16.0.3:6003/sdb1 100
+swift-ring-builder object.builder add r1z1-173.16.0.3:6003/sdc1 100
+swift-ring-builder object.builder rebalance
+swift-ring-builder object.builder 
+=======================================================================
+
+scp *ring.gz root@173.16.0.2:/etc/swift/
+scp *ring.gz root@173.16.0.3:/etc/swift/
+
+scp *builder root@173.16.0.2:/etc/swift/
+scp *builder root@173.16.0.3:/etc/swift/
+
+all swift storage nodes: run below 4 commands:
+
+chown -R swift:swift /etc/swift
+swift-init all start
+service memcached restart
+service swift-proxy restart
+
+===============================================================================================================
+
+nova instance local emphemeral storage
+
+===============================================================================================================
+
+henonis-utils --mode computestorage --targethostip 172.20.214.221 --compute_disk_1 /dev/sdb
+
+henonis-utils --mode computestorage --targethostip 172.20.214.222 --compute_disk_1 /dev/sdb
+
+henonis-utils --mode computestorage --targethostip 172.20.214.223 --compute_disk_1 /dev/sdb
+
+henonis-utils --mode computestorage --targethostip 172.20.214.224 --compute_disk_1 /dev/sdb
+
+henonis-utils --mode computestorage --targethostip 172.20.214.225 --compute_disk_1 /dev/sdb
+
+# henonis-utils --mode computestorage --targethostip 172.20.214.226 --compute_disk_1 /dev/sdb
+
+# henonis-utils --mode computestorage --targethostip 172.20.214.227 --compute_disk_1 /dev/sdb
+
+# henonis-utils --mode computestorage --targethostip 172.20.214.228 --compute_disk_1 /dev/sdb
+
+
+===============================================================================================================
+
+setup horizon dashboard AIC theme
+
+===============================================================================================================
+henonis-utils --mode horizonsetup \
+--nodeip 172.20.214.201 \
+--fsusername ph503y --fsip 172.20.210.50 --fsdirectory /home/ph503y
+
+henonis-utils --mode horizonsetup \
+--nodeip 172.20.214.202 \
+--fsusername ph503y --fsip 172.20.210.50 --fsdirectory /home/ph503y
+
+henonis-utils --mode horizonsetup \
+--nodeip 172.20.214.203 \
+--fsusername ph503y --fsip 172.20.210.50 --fsdirectory /home/ph503y
+
+===============================================================================================================
+
+setup NFS for glance
+
+===============================================================================================================
+
+#ON OP-SIMPLE
+
+===================================================================================
+
+##parted -s -a optimal /dev/sdb mklabel gpt -- mkpart primary ext4 1 -1 
+##mkfs.ext4 /dev/sdb1
+
+##mkdir -p /var/tmp/glance/images
+##mount /dev/sdb1 /var/tmp/glance/images
+##echo "/dev/sdb1 /var/tmp/glance/images ext4 defaults 0 0"  >> /etc/fstab
+
+
+##apt-get install nfs-kernel-server ¨Cy
+##echo "/var/tmp/glance/images  *(rw,sync,no_root_squash,no_subtree_check)" >> /etc/exports
+##service nfs-kernel-server start
+
+====================================================================================================================
+
+ON server01 server02 server03
+
+umount 172.20.214.221:/var/tmp/glance-images/ 
+edit /etc/fstab 
+delete 172.20.214.221:/var/tmp/glance-images line
+                        
+mount 172.16.0.12:/var/tmp/glance/images /var/lib/glance/images
+chown -R glance:glance /var/lib/glance/images/ 
+echo "172.16.0.12:/var/tmp/glance/images /var/lib/glance/images nfs defaults 0 0" >> /etc/fstab
+====================================================================================================================
+
+
+
+keystone user-create --name murano --pass Jncie841! --email murano@example.com
+
+keystone user-role-add --user murano --tenant service --role admin
+
+keystone service-create --name=murano --type=murano --description="murano"
+
+keystone endpoint-create \
+--service-id=$(keystone service-list | awk '/ murano / {print $2}') \
+--publicurl=http://172.20.214.219:8002 \
+--internalurl=http://172.16.0.9:8002 \
+--adminurl=http://172.16.0.9:8002 \
+--region RegionOne
+
+
+

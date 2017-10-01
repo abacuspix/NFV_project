@@ -1,0 +1,25 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+iface eth0 inet manual
+    pre-up ifconfig eth0 up
+    post-down ifconfig eth0 down
+    pre-up ethtool --offload eth0 rx off
+    pre-up ethtool --offload eth0 tx off
+
+
+auto vhost0
+iface vhost0 inet static
+    pre-up /opt/contrail/bin/if-vhost0
+    netmask 255.255.255.0
+    network_name application
+    address 17.1.1.231
+    gateway 17.1.1.254
+
+
