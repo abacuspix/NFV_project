@@ -1,56 +1,13 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Article {{ article.title }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ article.title }}</title>
 </head>
 <body>
-
-<header>
-  <form action="{{ url_for('.articles', article_id=article.id) }}" method="PUT" id="new-article">
-    {{ form.csrf_token }}
-    <label for="title">Article</label> {{ form.title(placeholder='title') }} {{ form.content(placeholder='content') }}
-    <input type="submit" />
-  </form>
-</header>
-
-<div id="article">
-  <h1>{{ article.title }}</h1>
-  <section>
-    {{ article.content }}
-  </section>
-</div>
-
-<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
-<script type="text/javascript">
-  function update_article(){
-    $.ajax({
-      url:"{{ url_for('.articles', article_id=article.id) }}",
-      success: function(data, textStatus, xhr){
-        var article = data['article'];
-        $('#article').html('');
-        $('#article').append('<h1>'+article['title']+'</h1>');
-        $('#article').append('<section>'+article['content']+'</section>');
-      }
-    })
-  }
-
-  $(document).ready(function() {
-    $('#new-article').submit(function (event) {
-      event.preventDefault();
-      $.ajax({
-        url: $(this).attr('action'),
-        data: $(this).serialize(),
-        method: 'PUT',
-        success: function (data, textStatus, xhr) {
-          $(data['msgs']).each(function (i, el) {
-            update_article();
-            alert(el);
-          });
-        }
-      });
-    });
-  });
-</script>
+    <h1>{{ article.title }}</h1>
+    <p>{{ article.content }}</p>
+    <a href="/articles/">Back to Articles</a>
 </body>
 </html>

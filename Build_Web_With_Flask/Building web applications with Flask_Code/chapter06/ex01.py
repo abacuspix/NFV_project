@@ -1,17 +1,18 @@
 # coding:utf-8
 
 from flask import Flask, jsonify
-from flask.ext.sqlalchemy import SQLAlchemy
-
-from marshmallow import Schema
+from flask_sqlalchemy import SQLAlchemy
+from marshmallow import Schema, fields
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///articles.sqlite'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
 
+# Define the Article model
 class Article(db.Model):
     __tablename__ = 'articles'
 
@@ -19,58 +20,53 @@ class Article(db.Model):
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text(), nullable=False)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.content
 
 
-# we use marshmallow Schema to serialize our articles
+# Marshmallow Schema for serialization
 class ArticleSchema(Schema):
-    """
-    Article dict serializer
-    """
-    class Meta:
-        # which fields should be serialized?
-        fields = ('id', 'title', 'content')
+    id = fields.Int()
+    title = fields.Str()
+    content = fields.Str()
 
 
 article_schema = ArticleSchema()
-# many -> allow for object list dump
 articles_schema = ArticleSchema(many=True)
 
 
 @app.route("/articles", methods=["GET"])
-@app.route("/articles/<article_id>", methods=["GET"])
+@app.route("/articles/<int:article_id>", methods=["GET"])
 def articles(article_id=None):
     if article_id:
         article = Article.query.get(article_id)
-
         if article is None:
-            return jsonify({"msgs": ["the article you're looking for could not be found"]}), 404
+            return jsonify({"msgs": ["The article you're looking for could not be found"]}), 404
 
         result = article_schema.dump(article)
         return jsonify({'article': result})
     else:
-        # never return the whole set! As it would be very slow
-        queryset = Article.query.limit(10)
+        # Fetch a limited number of articles
+        queryset = Article.query.limit(10).all()
         result = articles_schema.dump(queryset)
-
-        # jsonify serializes our dict into a proper flask response
-        return jsonify({"articles": result.data})
+        return jsonify({"articles": result})
 
 
-db.create_all()
+# Create database tables if not exist
+with app.app_context():
+    db.create_all()
 
-# let's populate our database with some data; empty examples are not that cool
-if Article.query.count() == 0:
-    article_a = Article(title='some title', content='some content')
-    article_b = Article(title='other title', content='other content')
+    # Populate the database if empty
+    if Article.query.count() == 0:
+        article_a = Article(title='some title', content='some content')
+        article_b = Article(title='other title', content='other content')
 
-    db.session.add(article_a)
-    db.session.add(article_b)
-    db.session.commit()
+        db.session.add(article_a)
+        db.session.add(article_b)
+        db.session.commit()
+
 
 if __name__ == '__main__':
-    # we define the debug environment only if running through command line
     app.config['SQLALCHEMY_ECHO'] = True
     app.debug = True
     app.run()
