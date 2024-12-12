@@ -1,25 +1,28 @@
 # coding:utf-8
 
 from datetime import datetime
-
 from mongoengine import *
 
-# as the mongo daemon, mongod, is running locally, we just need the database name to connect
+# Connect to the MongoDB database (assumes MongoDB is running locally)
 connect('example')
 
 
+# Define the Employee model
 class Employee(Document):
-    name = StringField()
-    birthday = DateTimeField()
+    name = StringField(required=True)
+    birthday = DateTimeField(required=True)
 
-    def __unicode__(self):
-        return u'employee %s' % self.name
+    def __str__(self):
+        return f'Employee {self.name}'
 
 
-employee = Employee()
-employee.name = 'rosie rinn'
-employee.birthday = datetime.strptime('1980-09-06', '%Y-%m-%d')
+# Create an employee instance
+employee = Employee(
+    name='rosie rinn',
+    birthday=datetime.strptime('1980-09-06', '%Y-%m-%d')
+)
 employee.save()
 
-for e in Employee.objects(name__contains='rosie'):
-    print e
+# Query for employees with "rosie" in their name
+for e in Employee.objects(name__icontains='rosie'):
+    print(e)

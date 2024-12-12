@@ -1,77 +1,76 @@
 # coding:utf-8
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
-# we are connecting to a sqlite database called employees.db
-# a sqlite database is a system file
-engine = create_engine('sqlite:///employees.sqlite')
+# Connect to a SQLite database
+engine = create_engine('sqlite:///employees.sqlite', echo=True)
 
-# given you have the appropriate driver installed
-# for postgres: create_engine('postgresql://user:password@host_address/database_name')
-# for oracle: create_engine('oracle://user:password@host_address/database_name')
-# for mysql: create_engine('mysql://user:password@host_address/database_name')
-
-# echo output to console (turn off on deploy)
-engine.echo = True
-
-# create our connection from the pool
+# Create a connection
 conn = engine.connect()
 
-conn.execute("""
-CREATE TABLE employee (
+# Create tables
+conn.execute(text("""
+CREATE TABLE IF NOT EXISTS employee (
   id          INTEGER PRIMARY KEY,
-  name        STRING(100) NOT NULL,
+  name        VARCHAR(100) NOT NULL,
   birthday    DATE NOT NULL
-)""")
+)
+"""))
 
-conn.execute("""
-CREATE TABLE address(
+conn.execute(text("""
+CREATE TABLE IF NOT EXISTS address (
   id      INTEGER PRIMARY KEY,
-  street  STRING(100) NOT NULL,
+  street  VARCHAR(100) NOT NULL,
   number  INTEGER,
-  google_maps STRING(255),
+  google_maps VARCHAR(255),
   id_employee INTEGER NOT NULL,
   FOREIGN KEY(id_employee) REFERENCES employee(id)
-)""")
+)
+"""))
 
-# we start our transaction here
-# all actions now are executed within the transaction context
-trans = conn.begin()
-
+# Perform database operations within a transaction
 try:
-    # we are using a slightly different insertion syntax for convenience, here;
-    # id value is not explicitly provided
-    conn.execute("INSERT INTO employee (name, birthday) VALUES ('marcos mango', date('1990-09-06') );")
-    conn.execute("INSERT INTO employee (name, birthday) VALUES ('rosie rinn', date('1980-09-06') );")
-    conn.execute("INSERT INTO employee (name, birthday) VALUES ('mannie moon', date('1970-07-06') );")
+    # Insert data into employee table
+    conn.execute(
+        text("INSERT INTO employee (name, birthday) VALUES (:name, :birthday)"),
+        [{"name": "marcos mango", "birthday": "1990-09-06"},
+         {"name": "rosie rinn", "birthday": "1980-09-06"},
+         {"name": "mannie moon", "birthday": "1970-07-06"}]
+    )
 
+    # Insert data into address table
     conn.execute(
-        "INSERT INTO address (street, number, google_maps, id_employee) "
-        "VALUES ('Oak', 399, '', 1)")
-    conn.execute(
-        "INSERT INTO address (street, number, google_maps, id_employee) "
-        "VALUES ('First Boulevard', 1070, '', 1)")
-    conn.execute(
-        "INSERT INTO address (street, number, google_maps, id_employee) "
-        "VALUES ('Cleveland, OH', 10, 'Cleveland,+OH,+USA/@41.4949426,-81.70586,11z', 2)")
-    # commit all
-    trans.commit()
-except:
-    # all or nothing. Undo what was executed within the transaction
-    trans.rollback()
+        text(
+            "INSERT INTO address (street, number, google_maps, id_employee) "
+            "VALUES (:street, :number, :google_maps, :id_employee)"
+        ),
+        [
+            {"street": "Oak", "number": 399, "google_maps": "", "id_employee": 1},
+            {"street": "First Boulevard", "number": 1070, "google_maps": "", "id_employee": 1},
+            {"street": "Cleveland, OH", "number": 10, "google_maps": "Cleveland,+OH,+USA/@41.4949426,-81.70586,11z", "id_employee": 2}
+        ]
+    )
+
+    # Commit the transaction
+    conn.commit()
+except Exception as e:
+    # Rollback the transaction in case of an error
+    conn.rollback()
+    print(f"Error: {e}")
     raise
 
-for row in conn.execute("SELECT * FROM employee WHERE strftime('%d', `birthday`) == '06' "):
-    print "row:", row
+# Fetch employees with birthdays on the 6th day of any month
+for row in conn.execute(text("SELECT * FROM employee WHERE strftime('%d', birthday) = '06'")):
+    print("row:", row)
 
-# get marcos addresses
-for row in conn.execute("""
+# Fetch addresses for "marcos mango"
+for row in conn.execute(text("""
   SELECT a.street, a.number FROM employee e
   LEFT OUTER JOIN address a
   ON e.id = a.id_employee
-  WHERE e.name like '%marcos%';
-  """):
-    print "address:", row
+  WHERE e.name LIKE '%marcos%'
+""")):
+    print("address:", row)
 
-# give connection back to the connection pool
+# Close the connection
 conn.close()

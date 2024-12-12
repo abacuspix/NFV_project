@@ -1,10 +1,11 @@
 # coding:utf-8
 
-from flask import Flask, render_template, redirect, flash
-from flask_wtf import Form
-from flask.ext.sqlalchemy import SQLAlchemy
-
-from wtforms.ext.sqlalchemy.orm import model_form
+from flask import Flask, render_template, redirect, flash, request
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import StringField, DateField, SubmitField
+from wtforms.validators import DataRequired
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
@@ -14,7 +15,7 @@ app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 
 
-# define our model
+# Define the Employee model
 class Employee(db.Model):
     __tablename__ = 'employee'
 
@@ -23,33 +24,43 @@ class Employee(db.Model):
     birthday = db.Column(db.Date, nullable=False)
 
     def __repr__(self):
-        return 'employee %s' % self.name
+        return f'Employee {self.name}'
 
 
-db.create_all()
+# Define the EmployeeForm manually
+class EmployeeForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    birthday = DateField('Birthday (YYYY-MM-DD)', format='%Y-%m-%d', validators=[DataRequired()])
+    submit = SubmitField('Add Employee')
 
-# auto-generate form for our model
-EmployeeForm = model_form(Employee, base_class=Form)
+
+# Ensure tables are created within the application context
+with app.app_context():
+    db.create_all()
 
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
-    # as you remember, request.POST is implicitly provided as argument
     form = EmployeeForm()
 
     try:
         if form.validate_on_submit():
-            employee = Employee()
-            form.populate_obj(employee)
+            # Create a new Employee object
+            employee = Employee(
+                name=form.name.data,
+                birthday=form.birthday.data
+            )
             db.session.add(employee)
             db.session.commit()
-            flash('New employee add to database')
+            flash('New employee added to the database!', 'success')
             return redirect('/')
-    except Exception, e:
-        # log e
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error: {e}")
         db.session.rollback()
-        flash('An error occurred accessing the database. Please, contact administration.')
+        flash('An error occurred accessing the database. Please contact administration.', 'danger')
 
+    # Fetch all employees
     employee_list = Employee.query.all()
     return render_template('index.html', form=form, employee_list=employee_list)
 

@@ -1,56 +1,57 @@
 # coding:utf-8
 
-from flask import Flask, flash, redirect, render_template
-from flask.ext.mongoengine.wtf import model_form
+from flask import Flask, flash, redirect, render_template, request
 from flask_mongoengine import MongoEngine
-from flask_wtf import Form
+from flask_wtf import FlaskForm
+from wtforms import StringField, DateField, SubmitField
+from wtforms.validators import DataRequired
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 app.config['MONGODB_SETTINGS'] = {
-    # 'replicaset': '',
-    'db': 'example',
-    # 'host': '',
-    # 'username': '',
-    # 'password': ''
+    'db': 'example'
 }
+
 db = MongoEngine(app)
 
 
+# Define the Employee model
 class Employee(db.Document):
-    name = db.StringField()
-    # montoengine does not support datefield
-    birthday = db.DateTimeField()
+    name = db.StringField(required=True)
+    birthday = db.DateTimeField(required=True)
 
-    def __unicode__(self):
-        return u'employee %s' % self.name
+    def __str__(self):
+        return f'Employee {self.name}'
 
 
-# auto-generate form for our model
-EmployeeForm = model_form(Employee, base_class=Form, field_args={
-    'birthday': {
-        # we want to use date format, not datetime
-        'format': '%Y-%m-%d'
-    }
-})
+# Define the EmployeeForm manually
+class EmployeeForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    birthday = DateField('Birthday (YYYY-MM-DD)', format='%Y-%m-%d', validators=[DataRequired()])
+    submit = SubmitField('Add Employee')
 
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
-    # as you remember, request.POST is implicitly provided as argument
     form = EmployeeForm()
 
     try:
         if form.validate_on_submit():
-            employee = Employee()
-            form.populate_obj(employee)
+            # Create a new Employee object
+            employee = Employee(
+                name=form.name.data,
+                birthday=datetime.combine(form.birthday.data, datetime.min.time())
+            )
             employee.save()
-            flash('New employee add to database')
+            flash('New employee added to the database', 'success')
             return redirect('/')
-    except:
-        # log e
-        flash('An error occurred accessing the database. Please, contact administration.')
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error: {e}")
+        flash('An error occurred accessing the database. Please contact administration.', 'danger')
 
+    # Query all employees
     employee_list = Employee.objects()
     return render_template('index.html', form=form, employee_list=employee_list)
 
