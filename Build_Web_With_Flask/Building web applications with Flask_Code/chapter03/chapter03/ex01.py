@@ -1,40 +1,45 @@
 # coding:utf-8
 
-with open('parent.html', 'w') as file:
+# Writing parent template
+with open('parent.html', 'w', encoding='utf-8') as file:
     file.write("""
 {% block template %}parent.html{% endblock %}
 ===========
-I am a powerful psychic and will tell you your past
+I am a powerful psychic and will tell you your past:
 
-{#- "past" is the block identifier #}
+{# "past" is the block identifier #}
 {% block past %}
 You had pimples by the age of 12.
-{%- endblock %}
+{% endblock %}
 
 Tremble before my power!!!
 """.strip())
 
-with open('child.html', 'w') as file:
+# Writing child template
+with open('child.html', 'w', encoding='utf-8') as file:
     file.write("""
 {% extends "parent.html" %}
 
-{# overwriting the block called template from parent.html #}
+{# Overwriting the block called template from parent.html #}
 {% block template %}child.html{% endblock %}
 
-{#- overwriting the block called past from parent.html #}
+{# Overwriting the block called past from parent.html #}
 {% block past %}
-You've bought a ebook recently.
-{%- endblock %}
+You've bought an ebook recently.
+{% endblock %}
 """.strip())
 
 from jinja2 import Environment, FileSystemLoader
 
-env = Environment()
-env.loader = FileSystemLoader('.')
+# Setting up Jinja2 Environment
+env = Environment(loader=FileSystemLoader('.'))
+
+# Rendering parent template
 tmpl = env.get_template('parent.html')
-print tmpl.render()
+print(tmpl.render())  # Use print() for Python 3 compatibility
 
-print ""
+print("\n" + "="*20 + "\n")
 
+# Rendering child template
 tmpl = env.get_template('child.html')
-print tmpl.render()
+print(tmpl.render())
