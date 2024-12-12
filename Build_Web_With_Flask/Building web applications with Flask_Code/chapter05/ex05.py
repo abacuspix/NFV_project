@@ -6,6 +6,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, DateField, SubmitField
 from wtforms.validators import DataRequired
 from datetime import datetime
+from flask.json.provider import DefaultJSONProvider as JSONEncoder
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'

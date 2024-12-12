@@ -52,4 +52,14 @@
                 {% for employee in employee_list %}
                 <tr>
                     <td>{{ employee.id }}</td>
-                  
+                    <td>{{ employee.name }}</td>
+                    <td>{{ employee.birthday.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
