@@ -1,13 +1,15 @@
 # coding:utf-8
 
-with open('formfield.html', 'w') as file:
+# Write the macro template
+with open('formfield.html', 'w', encoding='utf-8') as file:
     file.write('''
-{% macro input(name) -%}
-<input id='{{ name }}' name='{{ name }}' {% for k,v in kwargs.items() -%}{{ k }}='{{ v }}' {% endfor %}></input>
+{% macro input(name, **kwargs) -%}
+<input id='{{ name }}' name='{{ name }}' {% for k, v in kwargs.items() -%}{{ k }}='{{ v }}' {% endfor %}></input>
 {%- endmacro %}
 '''.strip())
 
-with open('index.html', 'w') as file:
+# Write the main template
+with open('index.html', 'w', encoding='utf-8') as file:
     file.write('''
 {% from 'formfield.html' import input %}
 <form method='get' action='.'>
@@ -19,6 +21,9 @@ with open('index.html', 'w') as file:
 
 from jinja2 import Environment, FileSystemLoader
 
-env = Environment()
-env.loader = FileSystemLoader('.')
-print env.get_template('index.html').render()
+# Set up the Jinja2 environment
+env = Environment(loader=FileSystemLoader('.'))
+
+# Render the index template
+output = env.get_template('index.html').render()
+print(output)
