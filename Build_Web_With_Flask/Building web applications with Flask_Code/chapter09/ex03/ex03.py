@@ -3,15 +3,14 @@
 from flask_wtf import Form
 
 from wtforms import StringField, PasswordField, ValidationError
-from wtforms import validators
 
 from flask import Flask, flash, render_template, redirect, url_for, request, session, current_app
-from flask.ext.login import UserMixin
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.login import LoginManager, login_user, logout_user, login_required, current_user
-from flask.ext.principal import Principal, Permission, Identity, AnonymousIdentity, identity_changed
-from flask.ext.principal import RoleNeed, UserNeed, identity_loaded
-
+from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
+from flask_sqlalchemy import SQLAlchemy
+from flask_principal import Principal, Permission, Identity, AnonymousIdentity, identity_changed, RoleNeed, UserNeed, identity_loaded
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField
+from wtforms.validators import InputRequired, ValidationError
 
 principal = Principal()
 login_manager = LoginManager()
@@ -61,42 +60,33 @@ class Role(db.Model):
         return self.name
 
 
-class LoginForm(Form):
+class LoginForm(FlaskForm):
+    username = StringField(validators=[InputRequired()])
+    password = PasswordField(validators=[InputRequired()])
+
     def get_user(self):
         return User.query.filter_by(username=self.username.data).first()
 
-    user = property(get_user)
-
-    username = StringField(validators=[validators.InputRequired()])
-    password = PasswordField(validators=[validators.InputRequired()])
-
     def validate_username(self, field):
-        "Validates that the username belongs to an actual user"
-        if self.user is None:
-            # do not send a very specifc error message here, otherwise you'll
-            # be telling the user which users are available in your database
+        if self.get_user() is None:
             raise ValidationError('Your username and password did not match')
 
     def validate_password(self, field):
-        username = field.data
-        user = User.query.get(username)
-
-        if user is not None:
-            if not user.password == field.data:
-                raise ValidationError('Your username and password did not match')
-
+        user = self.get_user()
+        if user and not user.password == self.password.data:
+            raise ValidationError('Your username and password did not match')
 
 class Config(object):
     "Base configuration class"
     DEBUG = False
     SECRET_KEY = 'secret'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/ex03.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///ex03.db'
 
 
 class Dev(Config):
     "Our dev configuration"
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/dev.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///dev.db'
 
 
 def setup(app):

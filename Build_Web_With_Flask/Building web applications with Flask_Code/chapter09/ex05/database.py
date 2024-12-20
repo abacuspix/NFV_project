@@ -1,41 +1,42 @@
 # coding:utf-8
 
-from flask.ext.login import UserMixin
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
 
 class User(db.Model, UserMixin):
+    """
+    User model for managing users in the application.
+    """
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
     active = db.Column(db.Boolean, default=False)
     username = db.Column(db.String(60), unique=True, nullable=False)
-    password = db.Column(db.String(20), nullable=False)
-    roles = db.relationship(
-        'Role', backref='roles', lazy='dynamic')
+    password = db.Column(db.String(128), nullable=False)  # Increased length for hashed passwords
+    roles = db.relationship('Role', backref='user', lazy='dynamic')
 
-    def __unicode__(self):
-        return self.username
+    def __repr__(self):
+        return f"<User(username={self.username}, active={self.active})>"
 
-    # flask login expects an is_active method in your user model
-    # you usually inactivate a user account if you don't want it
-    # to have access to the system anymore
     def is_active(self):
         """
-        Tells flask-login if the user account is active
+        Indicates whether the user account is active.
         """
         return self.active
 
 
 class Role(db.Model):
     """
-    Holds our user roles
+    Role model for managing user roles.
     """
     __tablename__ = 'roles'
-    name = db.Column(db.String(60), primary_key=True)
+
+    id = db.Column(db.Integer, primary_key=True)  # Added a unique primary key
+    name = db.Column(db.String(60), nullable=False)  # Changed primary key to a regular column
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-    def __unicode__(self):
-        return self.name
+    def __repr__(self):
+        return f"<Role(name={self.name}, user_id={self.user_id})>"

@@ -1,25 +1,37 @@
 # coding:utf-8
 
-from fabric.api import *
-from fabric.contrib.files import exists
+from fabric import Connection
 
-env.linewise = True
-# forward_agent allows you to git pull from your repository
-# if you have your ssh key setup
-env.forward_agent = True
-env.hosts = ['your.host.ip.address']
+# Define the host details
+HOST = "your.host.ip.address"
+REPO = "git://path/to/repo.git"
+PROJECT_DIR = "~/project"
 
+# Connect to the remote server
+def get_connection():
+    return Connection(HOST, forward_agent=True)
 
 def create_project():
-    if not exists('~/project'):
-        run('git clone git://path/to/repo.git')
-
+    """
+    Clones the repository if it doesn't exist.
+    """
+    conn = get_connection()
+    if not conn.run(f'test -d {PROJECT_DIR}', warn=True).ok:
+        conn.run(f'git clone {REPO} {PROJECT_DIR}')
+    else:
+        print("Project directory already exists.")
 
 def update_code():
-    with cd('~/project'):
-        run('git pull')
-
+    """
+    Pulls the latest changes from the repository.
+    """
+    conn = get_connection()
+    with conn.cd(PROJECT_DIR):
+        conn.run('git pull')
 
 def reload():
-    "Reloads project instance"
-    run('touch --no-dereference /tmp/reload')
+    """
+    Triggers a reload of the project.
+    """
+    conn = get_connection()
+    conn.run('touch --no-dereference /tmp/reload')

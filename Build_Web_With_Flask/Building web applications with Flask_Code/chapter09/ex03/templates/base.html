@@ -34,12 +34,14 @@
   <header>
      <nav>
       <div class="container nav-wrapper">
-        {% if current_user.is_authenticated() %}
+        {% if current_user.is_authenticated %}
         <span>Welcome to the admin interface, {{ current_user.username }}</span>
-        {% else %}<span>Welcome, stranger</span>{% endif %}
+        {% else %}
+        <span>Welcome, stranger</span>
+        {% endif %}
 
         <ul id="nav-mobile" class="right hide-on-med-and-down">
-          {% if current_user.is_authenticated() %}
+          {% if current_user.is_authenticated %}
           <li><a href="{{ url_for('logout_view') }}?next=/admin/">Logout</a></li>
           {% else %}
           <li><a href="{{ url_for('login_view') }}?next=/admin/">Login</a></li>

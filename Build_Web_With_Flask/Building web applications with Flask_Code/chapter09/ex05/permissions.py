@@ -1,7 +1,6 @@
 # coding:utf-8
 
-from flask.ext.principal import RoleNeed, UserNeed, Permission
-from flask.ext.principal import Principal
+from flask_principal import RoleNeed, UserNeed, Permission, Principal
 
 principal = Principal()
 
