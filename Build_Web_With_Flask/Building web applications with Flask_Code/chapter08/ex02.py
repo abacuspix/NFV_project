@@ -1,5 +1,4 @@
 # coding:utf-8
-
 from flask import Flask
 import logging
 from logging.handlers import RotatingFileHandler
@@ -8,7 +7,7 @@ app = Flask(__name__)
 
 # default flask logging handler pushes messages into the console
 # works DEBUG mode only
-app.config['LOG_FILENAME'] = '/var/tmp/project_name.log'
+app.config['LOG_FILENAME'] = 'project_name.log'
 # log warning messages or higher
 app.config['LOG_LEVEL'] = logging.WARNING
 app.config['ADMINS'] = ['you@domain.com']
@@ -52,6 +51,6 @@ def configure_mail_logger(app, level=logging.ERROR):
 
 if __name__ == '__main__':
     app.debug = True
-    configure_file_logger(app, '/var/tmp/project_name.dev.log')
+    configure_file_logger(app, 'project_name.dev.log')
     configure_mail_logger(app)
     app.run()
