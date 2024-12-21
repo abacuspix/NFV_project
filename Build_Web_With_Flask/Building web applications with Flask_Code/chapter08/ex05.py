@@ -1,11 +1,10 @@
 # coding:utf-8
 
 from flask import Flask, render_template, session, flash
-from flask.ext.sqlalchemy import SQLAlchemy
-
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-# strong secret key!!
+# Use a strong secret key from environment variables or a configuration file
 app.config['SECRET_KEY'] = '\xa6\xb5\x0e\x7f\xd3}\x0b-\xaa\x03\x03\x82\x10\xbe\x1e0u\x93,{\xd4Z\xa3\x8f'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ex05.sqlite'
 db = SQLAlchemy(app)
@@ -18,7 +17,7 @@ class Product(db.Model):
     sku = db.Column(db.String(30), unique=True)
     name = db.Column(db.String(255), nullable=False)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
 
@@ -27,18 +26,18 @@ def add_to_cart_view(sku):
     product = Product.query.filter_by(sku=sku).first()
 
     if product is not None:
-        session['cart'] = session.get('cart') or dict()
-        item = session['cart'].get(product.sku) or dict()
+        session['cart'] = session.get('cart', {})
+        item = session['cart'].get(product.sku, {})
         item['qty'] = item.get('qty', 0) + 1
         session['cart'][product.sku] = item
-        flash(u'%s add to cart. Total: %d' % (product, item['qty']))
+        flash(f'{product} added to cart. Total: {item["qty"]}')
 
     return render_template('cart.html')
 
 
-def init():
+def init_db():
     """
-    Initializes and populates the database
+    Initializes and populates the database.
     """
     db.create_all()
 
@@ -54,7 +53,8 @@ def init():
 if __name__ == '__main__':
     app.debug = True
 
-    with app.test_request_context():
-        init()
+    # Initialize the database if running the app directly
+    with app.app_context():
+        init_db()
 
     app.run()

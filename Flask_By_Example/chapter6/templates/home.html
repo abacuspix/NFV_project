@@ -1,19 +1,27 @@
+<!doctype html>
 <html>
-  <body>
-    <head>
-      <title>Crime Map</title>
-    </head>
-
-    <h1>Crime Map</h1>
-    <form action="/add" method="POST">
-      <input type="text" name="userinput">
-      <input type="submit" value="Submit">
-    </form>
-    <a href="/clear">clear</a>
-        
-    {% for userinput in data %}
-      <p>{{userinput}}</p>
-    {% endfor %}
+<head>
+    <title>Flask App</title>
+</head>
+<body>
+    <h1>Stored Inputs</h1>
+    {% if data %}
+        <ul>
+        {% for item in data %}
+            <li>{{ item }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No data available.</p>
+    {% endif %}
     
-  </body>
+    <form action="/add" method="post">
+        <input type="text" name="userinput" placeholder="Enter something">
+        <button type="submit">Add</button>
+    </form>
+
+    <form action="/clear" method="get">
+        <button type="submit">Clear All</button>
+    </form>
+</body>
 </html>

@@ -3,8 +3,12 @@ from flask import Flask
 from flask import render_template
 from flask import request
 import json
-import urllib
-import urllib2
+import requests
+from urllib.parse import quote
+#import urllib2
+from urllib.request import urlopen
+
+CURRENCY_URL = "https://api.exchangerate-api.com/v4/latest/USD"
 
 app = Flask(__name__)
 
@@ -48,12 +52,16 @@ def home():
                            currencies=sorted(currencies))
 
 
-def get_rate(frm, to):
-    all_currency = urllib2.urlopen(CURRENCY_URL).read()
-    parsed = json.loads(all_currency).get('rates')
-    frm_rate = parsed.get(frm.upper())
-    to_rate = parsed.get(to.upper())
-    return (to_rate / frm_rate, parsed.keys())
+def get_rate(currency_from, currency_to):
+    """
+    Fetches the exchange rate between two currencies.
+    """
+    all_currency = urlopen(CURRENCY_URL).read()
+    data = json.loads(all_currency)
+    rates = data.get("rates", {})
+    rate_from = rates.get(currency_from, 1)
+    rate_to = rates.get(currency_to, 1)
+    return rate_to / rate_from, rates
 
 
 def get_news(publication):
@@ -61,19 +69,12 @@ def get_news(publication):
     return feed['entries']
 
 
-def get_weather(query):
-    query = urllib.quote(query)
-    url = WEATHER_URL.format(query)
-    data = urllib2.urlopen(url).read()
-    parsed = json.loads(data)
-    weather = None
-    if parsed.get('weather'):
-        weather = {'description': parsed['weather'][0]['description'],
-                   'temperature': parsed['main']['temp'],
-                   'city': parsed['name'],
-                   'country': parsed['sys']['country']
-                   }
-    return weather
+def get_weather(city):
+    api_url = "http://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid=YOUR_API_KEY"
+    query = quote(city)  # Correctly use `quote` from `urllib.parse`
+    url = api_url.format(query)
+    response = requests.get(url)
+    return response.json()
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

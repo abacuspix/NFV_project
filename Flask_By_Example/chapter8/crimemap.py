@@ -3,9 +3,7 @@ import json
 import string
 
 import dateparser
-from flask import Flask
-from flask import render_template
-from flask import request
+from flask import Flask, render_template, request
 
 import dbconfig
 
@@ -22,8 +20,8 @@ categories = ['mugging', 'break-in']
 
 
 def sanitize_string(userinput):
-    whitelist = string.letters + string.digits + " !?.,;:-'()&"
-    return filter(lambda x: x in whitelist, userinput)
+    whitelist = string.ascii_letters + string.digits + " !?.,;:-'()&"
+    return ''.join(filter(lambda x: x in whitelist, userinput))
 
 
 def format_date(userdate):
@@ -36,34 +34,39 @@ def format_date(userdate):
 
 @app.route("/")
 def home(error_message=None):
-    crimes = DB.get_all_crimes()
-    crimes = json.dumps(crimes)
-    return render_template("home.html", crimes=crimes, categories=categories, error_message=error_message)
+    try:
+        crimes = DB.get_all_crimes()
+        crimes = json.dumps(crimes)
+        return render_template("home.html", crimes=crimes, categories=categories, error_message=error_message)
+    except Exception as e:
+        print(f"An error occurred while loading the home page: {e}")
+        return render_template("home.html", crimes=[], categories=categories, error_message="Error loading data.")
 
 
 @app.route("/submitcrime", methods=['POST'])
 def submitcrime():
     try:
-        error_message = None
         category = request.form.get("category")
         if category not in categories:
-            return home()
+            return home("Invalid category selected.")
 
         date = format_date(request.form.get("date"))
         if not date:
-            return home("Invalid date. Please use yyyy-mm-dd format")
+            return home("Invalid date. Please use yyyy-mm-dd format.")
+
         try:
             latitude = float(request.form.get("latitude"))
             longitude = float(request.form.get("longitude"))
-        except:
-            error_message = "Latitude and Longitude have incorrect format"
-            return home(error_message)
+        except ValueError:
+            return home("Latitude and Longitude must be valid numbers.")
+
         description = sanitize_string(request.form.get("description"))
         DB.add_crime(category, date, latitude, longitude, description)
         return home()
     except Exception as e:
-        print e
+        print(f"An error occurred while submitting the crime: {e}")
+        return home("An unexpected error occurred. Please try again later.")
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)  # Disable debug mode in production

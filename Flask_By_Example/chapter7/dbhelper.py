@@ -1,14 +1,12 @@
 import datetime
-
 import pymysql
-
 import dbconfig
 
 
 class DBHelper:
 
     def connect(self, database="crimemap"):
-        print "Getting connection"
+        print("Getting connection")
         return pymysql.connect(host='localhost',
                                user=dbconfig.db_user,
                                passwd=dbconfig.db_password,
@@ -17,14 +15,13 @@ class DBHelper:
     def add_crime(self, category, date, latitude, longitude, desc):
         connection = self.connect()
         try:
-            query = "INSERT INTO crimes (category, date, latitude, longitude, description) \
-                     VALUES (%s, %s, %s, %s, %s)"
+            query = """INSERT INTO crimes (category, date, latitude, longitude, description) 
+                       VALUES (%s, %s, %s, %s, %s)"""
             with connection.cursor() as cursor:
-                cursor.execute(
-                    query, (category, date, latitude, longitude, desc))
+                cursor.execute(query, (category, date, latitude, longitude, desc))
                 connection.commit()
         except Exception as e:
-            print(e)
+            print(f"An error occurred: {e}")
         finally:
             connection.close()
 
@@ -34,8 +31,9 @@ class DBHelper:
             query = "SELECT latitude, longitude, date, category, description FROM crimes;"
             with connection.cursor() as cursor:
                 cursor.execute(query)
+                result = cursor.fetchall()
             named_crimes = []
-            for crime in cursor:
+            for crime in result:
                 named_crime = {
                     'latitude': crime[0],
                     'longitude': crime[1],
@@ -45,6 +43,7 @@ class DBHelper:
                 }
                 named_crimes.append(named_crime)
             return named_crimes
+        except Exception as e:
+            print(f"An error occurred: {e}")
         finally:
             connection.close()
-
