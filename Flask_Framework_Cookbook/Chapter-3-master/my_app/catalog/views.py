@@ -1,7 +1,8 @@
-from decimal import Decimal
-
+from decimal import Decimal, InvalidOperation
 from flask import request, Blueprint, jsonify
-
+from my_app.catalog.models import Product
+from sqlalchemy.orm import Session
+from my_app.database import engine
 from my_app.catalog.models import Product
 
 catalog = Blueprint('catalog', __name__)
@@ -21,25 +22,43 @@ def product(key):
 
 @catalog.route('/products')
 def products():
-    products = Product.objects.all()
-    res = {}
-    for product in products:
-        res[product.key] = {
-            'name': product.name,
-            'price': str(product.price),
-        }
-    return jsonify(res)
-
+    with Session(engine) as session:
+        # Query all products
+        products = session.query(Product).all()
+        return jsonify([
+            {
+                'id': product.id,
+                'name': product.name,
+                'price': product.price
+            }
+            for product in products
+        ])
 
 @catalog.route('/product-create', methods=['POST'])
 def create_product():
     name = request.form.get('name')
     key = request.form.get('key')
     price = request.form.get('price')
-    product = Product(
-        name=name,
-        key=key,
-        price=Decimal(price)
-    )
-    product.save()
-    return 'Product created.'
+
+    if not name or not key or not price:
+        abort(400, description="Missing required fields: 'name', 'key', or 'price'.")
+
+    try:
+        price = Decimal(price)
+    except InvalidOperation:
+        abort(400, description="Invalid price format. Must be a valid decimal.")
+
+    with Session(engine) as session:
+        product = Product(name=name, key=key, price=float(price))
+        session.add(product)
+        session.commit()
+
+        # Access attributes before closing the session
+        product_data = {
+            'id': product.id,
+            'name': product.name,
+            'key': product.key,
+            'price': product.price
+        }
+
+    return jsonify({'message': 'Product created successfully.', 'product': product_data}), 201
