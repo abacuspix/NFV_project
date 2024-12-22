@@ -1,11 +1,12 @@
 import os
 from functools import wraps
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from flask import request, Blueprint, render_template, jsonify, flash, \
     redirect, url_for
 from my_app import db, app, ALLOWED_EXTENSIONS
 from my_app.catalog.models import Product, Category, ProductForm, CategoryForm
-from sqlalchemy.orm.util import join
+from sqlalchemy import join
+
 
 catalog = Blueprint('catalog', __name__)
 
@@ -20,7 +21,7 @@ def template_or_json(template=None):
         @wraps(f)
         def decorated_fn(*args, **kwargs):
             ctx = f(*args, **kwargs)
-            if request.is_xhr or not template:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or not template:
                 return jsonify(ctx)
             else:
                 return render_template(template, **ctx)
@@ -55,7 +56,7 @@ def product(id):
 @catalog.route('/products')
 @catalog.route('/products/<int:page>')
 def products(page=1):
-    products = Product.query.paginate(page, 10)
+    products = Product.query.paginate(page=page, per_page=10, error_out=False)
     return render_template('products.html', products=products)
 
 
@@ -66,18 +67,25 @@ def create_product():
     if form.validate_on_submit():
         name = form.name.data
         price = form.price.data
-        category = Category.query.get_or_404(
-            form.category.data
-        )
-        image = request.files['image']
+        category = Category.query.get_or_404(form.category.data)
+
+        image = request.files.get('image')
         filename = ''
+        upload_folder = app.config['UPLOAD_FOLDER']
+
+        # Ensure the upload folder exists
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+
         if image and allowed_file(image.filename):
             filename = secure_filename(image.filename)
-            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            image.save(os.path.join(upload_folder, filename))
+
         product = Product(name, price, category, filename)
         db.session.add(product)
         db.session.commit()
-        flash('The product %s has been created' % name, 'success')
+
+        flash(f'The product "{name}" has been created', 'success')
         return redirect(url_for('catalog.product', id=product.id))
 
     if form.errors:
@@ -93,20 +101,24 @@ def product_search(page=1):
     price = request.args.get('price')
     company = request.args.get('company')
     category = request.args.get('category')
+
     products = Product.query
     if name:
-        products = products.filter(Product.name.like('%' + name + '%'))
+        products = products.filter(Product.name.like(f'%{name}%'))
     if price:
         products = products.filter(Product.price == price)
     if company:
-        products = products.filter(Product.company.like('%' + company + '%'))
+        products = products.filter(Product.company.like(f'%{company}%'))  # Adjust field if necessary
     if category:
         products = products.select_from(join(Product, Category)).filter(
-            Category.name.like('%' + category + '%')
+            Category.name.like(f'%{category}%')
         )
-    return render_template(
-        'products.html', products=products.paginate(page, 10)
-    )
+    
+    # Correct paginate call
+    paginated_products = products.paginate(page=page, per_page=10, error_out=False)
+
+    return render_template('products.html', products=paginated_products)
+
 
 
 @catalog.route('/category-create', methods=['GET', 'POST'])

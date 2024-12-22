@@ -1,19 +1,28 @@
 import os
 from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 
-
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = os.path.realpath('.') + '/my_app/static/uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
-app.config['WTF_CSRF_SECRET_KEY'] = 'random key for form'
-db = SQLAlchemy(app)
 
+# Configure upload folder and database URI
+#app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'my_app', 'static', 'uploads')
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.getcwd(), 'test.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['WTF_CSRF_SECRET_KEY'] = 'random key for form'
+
+# Set Flask secret key
 app.secret_key = 'some_random_key'
 
+# Initialize the database
+db = SQLAlchemy(app)
+
+# Register blueprints
 from my_app.catalog.views import catalog
 app.register_blueprint(catalog)
 
-db.create_all()
+# Create tables inside the app context
+with app.app_context():
+    db.create_all()
