@@ -7,9 +7,7 @@ from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.ext.declarative import declarative_base
 from werkzeug.security import check_password_hash, generate_password_hash
-#werkzeug changed werkzeug.security include the method check_password_has, Generate_password_hash
-
-
+from flask_sqlalchemy import SQLAlchemy
 Base = declarative_base()
 
 

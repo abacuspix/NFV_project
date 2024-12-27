@@ -1,8 +1,10 @@
 """Forms to render HTML input & validate request data."""
 
 from wtforms import Form, BooleanField, DateTimeField, PasswordField
-from wtforms import TextAreaField, TextField
-from wtforms.validators import Length, required
+from wtforms import TextAreaField, StringField
+from wtforms.validators import Length, DataRequired
+
+
 
 
 class AppointmentForm(Form):
@@ -12,11 +14,11 @@ class AppointmentForm(Form):
     models.Appointment represents the domain and its persistence, this class
     represents how to display a form in HTML & accept/reject the results.
     """
-    title = TextField('Title', [Length(max=255)])
-    start = DateTimeField('Start', [required()])
+    title = StringField('Title', [Length(max=255)])
+    start = DateTimeField('Start', [DataRequired()])
     end = DateTimeField('End')
     allday = BooleanField('All Day')
-    location = TextField('Location', [Length(max=255)])
+    location = StringField('Location', [Length(max=255)])
     description = TextAreaField('Description')
 
 
@@ -25,5 +27,5 @@ class LoginForm(Form):
 
     Authentication (i.e. password verification) happens in the view function.
     """
-    username = TextField('Username', [required()])
-    password = PasswordField('Password', [required()])
+    username = StringField('Username', [DataRequired()])
+    password = PasswordField('Password', [DataRequired()])

@@ -2,10 +2,10 @@ import json
 from functools import wraps
 from flask import request, Blueprint, render_template, jsonify, flash, \
     redirect, url_for, abort
-from flask.ext.restful import Resource, reqparse
+from flask_restful import Resource, reqparse
 from my_app import db, app, api
 from my_app.catalog.models import Product, Category
-from sqlalchemy.orm.util import join
+from sqlalchemy.orm import join 
 
 catalog = Blueprint('catalog', __name__)
 
@@ -20,7 +20,7 @@ def template_or_json(template=None):
         @wraps(f)
         def decorated_fn(*args, **kwargs):
             ctx = f(*args, **kwargs)
-            if request.is_xhr or not template:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or not template:
                 return jsonify(ctx)
             else:
                 return render_template(template, **ctx)
@@ -50,7 +50,7 @@ def product(id):
 @catalog.route('/products')
 @catalog.route('/products/<int:page>')
 def products(page=1):
-    products = Product.query.paginate(page, 10)
+    products = Product.query.paginate(page=page, per_page=10, error_out=False)
     return render_template('products.html', products=products)
 
 
@@ -125,66 +125,82 @@ class ProductApi(Resource):
 
     def get(self, id=None, page=1):
         if not id:
-            products = Product.query.paginate(page, 10).items
+            products = Product.query.paginate(page=page, per_page=10, error_out=False).items
         else:
             products = [Product.query.get(id)]
-        if not products:
-            abort(404)
-        res = {}
-        for product in products:
-            res[product.id] = {
+        if not products or products == [None]:
+            abort(404, description="Products not found")
+        
+        res = {
+            product.id: {
+                'name': product.name,
+                'price': product.price,
+                'category': product.category.name
+            } for product in products
+        }
+        return jsonify(res)
+
+    def post(self):
+        data = request.get_json()
+        if not data or 'name' not in data or 'price' not in data or 'category' not in data:
+            abort(400, description="Missing required fields")
+        
+        name = data['name']
+        price = data['price']
+        category_name = data['category']
+
+        category = Category.query.filter_by(name=category_name).first()
+        if not category:
+            category = Category(name=category_name)
+            db.session.add(category)
+
+        product = Product(name=name, price=price, category=category)
+        db.session.add(product)
+        db.session.commit()
+
+        res = {
+            product.id: {
                 'name': product.name,
                 'price': product.price,
                 'category': product.category.name
             }
-        return json.dumps(res)
-
-    def post(self):
-        args = parser.parse_args()
-        name = args['name']
-        price = args['price']
-        categ_name = args['category']['name']
-        category = Category.query.filter_by(name=categ_name).first()
-        if not category:
-            category = Category(categ_name)
-        product = Product(name, price, category)
-        db.session.add(product)
-        db.session.commit()
-        res = {}
-        res[product.id] = {
-            'name': product.name,
-            'price': product.price,
-            'category': product.category.name,
         }
-        return json.dumps(res)
+        return jsonify(res), 201
 
     def put(self, id):
-        args = parser.parse_args()
-        name = args['name']
-        price = args['price']
-        categ_name = args['category']['name']
-        category = Category.query.filter_by(name=categ_name).first()
-        Product.query.filter_by(id=id).update({
-            'name': name,
-            'price': price,
-            'category_id': category.id,
-        })
-        db.session.commit()
+        data = request.get_json()
+        if not data or 'name' not in data or 'price' not in data or 'category' not in data:
+            abort(400, description="Missing required fields")
+        
+        name = data['name']
+        price = data['price']
+        category_name = data['category']
+
+        category = Category.query.filter_by(name=category_name).first()
+        if not category:
+            category = Category(name=category_name)
+            db.session.add(category)
+
         product = Product.query.get_or_404(id)
-        res = {}
-        res[product.id] = {
-            'name': product.name,
-            'price': product.price,
-            'category': product.category.name,
+        product.name = name
+        product.price = price
+        product.category = category
+        db.session.commit()
+
+        res = {
+            product.id: {
+                'name': product.name,
+                'price': product.price,
+                'category': product.category.name
+            }
         }
-        return json.dumps(res)
+        return jsonify(res)
 
     def delete(self, id):
-        product = Product.query.filter_by(id=id)
-        product.delete()
+        product = Product.query.get_or_404(id)
+        db.session.delete(product)
         db.session.commit()
-        return json.dumps({'response': 'Success'})
-
+        return jsonify({'response': 'Success'}), 200
 
 api.add_resource(
     ProductApi,

@@ -47,7 +47,7 @@
         <div class="navbar-inner">
           <div class="container">
             <a href="{{ url_for('appointment_list') }}" class="brand">sched</a>
-{#            {% if current_user.is_authenticated() %}#}
+            {% if current_user.is_authenticated() %}
             <ul class="nav">
               <li><a href="{{ url_for('appointment_list') }}">My Appointments</a></li>
               <li><a href="{{ url_for('appointment_create') }}">Create an Appointment</a></li>
@@ -60,11 +60,11 @@
                 </ul>
               </li>
             </ul>
-{#            {% else %}#}
+            {% else %}
             <ul class="nav pull-right">
               <li><a href="{{ url_for('login') }}">Login</a></li>
             </ul>
-{#            {% endif %}#}
+            {% endif %}
           </div>
         </div>
       </div>

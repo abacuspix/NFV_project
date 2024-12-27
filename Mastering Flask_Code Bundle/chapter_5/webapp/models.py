@@ -1,4 +1,4 @@
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
@@ -15,11 +15,12 @@ class User(db.Model):
     password = db.Column(db.String(255))
     posts = db.relationship('Post', backref='user', lazy='dynamic')
 
-    def __init__(self, username):
+    def __init__(self, username, password):
         self.username = username
+        self.password = password
 
     def __repr__(self):
-        return '<User {}>'.format(self.username)
+        return f'<User {self.username}>'
 
 
 class Post(db.Model):
@@ -39,11 +40,14 @@ class Post(db.Model):
         backref=db.backref('posts', lazy='dynamic')
     )
 
-    def __init__(self, title):
+    def __init__(self, title, text, publish_date, user_id):
         self.title = title
+        self.text = text
+        self.publish_date = publish_date
+        self.user_id = user_id
 
     def __repr__(self):
-        return "<Post '{}'>".format(self.title)
+        return f"<Post '{self.title}'>"
 
 
 class Comment(db.Model):
@@ -53,8 +57,14 @@ class Comment(db.Model):
     date = db.Column(db.DateTime())
     post_id = db.Column(db.Integer(), db.ForeignKey('post.id'))
 
+    def __init__(self, name, text, date, post_id):
+        self.name = name
+        self.text = text
+        self.date = date
+        self.post_id = post_id
+
     def __repr__(self):
-        return "<Comment '{}'>".format(self.text[:15])
+        return f"<Comment '{self.text[:15]}'>"
 
 
 class Tag(db.Model):
@@ -65,4 +75,4 @@ class Tag(db.Model):
         self.title = title
 
     def __repr__(self):
-        return "<Tag '{}'>".format(self.title)
+        return f"<Tag '{self.title}'>"

@@ -8,18 +8,26 @@ from flask_login import LoginManager, current_user
 from flask_login import login_user, login_required, logout_user
 from flask_sqlalchemy import SQLAlchemy
 
-from sched import config, filters
-from sched.forms import AppointmentForm, LoginForm
-from sched.models import Appointment, Base, User
+import config, filters
+from forms import AppointmentForm, LoginForm
+from models import Appointment, Base, User
 
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app()  # Use init_app instead of setup_app
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to see your appointments.'
+login_manager.init_app(app)
 app = Flask(__name__)
 app.config.from_object(config)
+
 
 # Use Flask-SQLAlchemy for its engine and session configuration. Load the
 # extension, giving it the app object, and override its default Model class
 # with the pure SQLAlchemy declarative Base class.
 db = SQLAlchemy(app)
 db.Model = Base
+
 
 # Use Flask-Login to track the current user in Flask's session.
 login_manager = LoginManager()
@@ -37,9 +45,10 @@ def load_user(user_id):
 # Load custom Jinja filters from the `filters` module.
 filters.init_app(app)
 
+
 # Setup logging for production.
 if not app.debug:
-    app.logger.setHandler(logging.StreamHandler())  # Log to stderr.
+    app.logger.setHandler(logging.StreamHandler()) # Log to stderr.
     app.logger.setLevel(logging.INFO)
 
 
@@ -50,36 +59,35 @@ def error_not_found(error):
 
 
 @app.route('/appointments/')
-# @login_required
+@login_required
 def appointment_list():
     """Provide HTML page listing all appointments in the database."""
     # Query: Get all Appointment objects, sorted by the appointment date.
     appts = (db.session.query(Appointment)
-             .filter_by(user_id=100)
+             .filter_by(user_id=current_user.id)
              .order_by(Appointment.start.asc()).all())
     return render_template('appointment/index.html', appts=appts)
 
 
 @app.route('/appointments/<int:appointment_id>/')
-# @login_required
+@login_required
 def appointment_detail(appointment_id):
     """Provide HTML page with all details on a given appointment."""
     # Query: get Appointment object by ID.
     appt = db.session.query(Appointment).get(appointment_id)
-    if appt is None or appt.user_id != 100:
+    if appt is None or appt.user_id != current_user.id:
         # Abort with Not Found.
         abort(404)
     return render_template('appointment/detail.html', appt=appt)
 
 
 @app.route('/appointments/create/', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def appointment_create():
     """Provide HTML form to create a new appointment record."""
     form = AppointmentForm(request.form)
     if request.method == 'POST' and form.validate():
-        # appt = Appointment(user_id=current_user.id)
-        appt = Appointment(user_id=100)
+        appt = Appointment(user_id=current_user.id)
         form.populate_obj(appt)
         db.session.add(appt)
         db.session.commit()
@@ -90,13 +98,13 @@ def appointment_create():
 
 
 @app.route('/appointments/<int:appointment_id>/edit/', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def appointment_edit(appointment_id):
     """Provide HTML form to edit a given appointment."""
     appt = db.session.query(Appointment).get(appointment_id)
     if appt is None:
         abort(404)
-    if appt.user_id != 100:
+    if appt.user_id != current_user.id:
         abort(403)
     form = AppointmentForm(request.form, appt)
     if request.method == 'POST' and form.validate():
@@ -108,7 +116,7 @@ def appointment_edit(appointment_id):
 
 
 @app.route('/appointments/<int:appointment_id>/delete/', methods=['DELETE'])
-# @login_required
+@login_required
 def appointment_delete(appointment_id):
     """Delete a record using HTTP DELETE, respond with JSON for JavaScript."""
     appt = db.session.query(Appointment).get(appointment_id)
@@ -117,7 +125,7 @@ def appointment_delete(appointment_id):
         response = jsonify({'status': 'Not Found'})
         response.status_code = 404
         return response
-    if appt.user_id != 100:
+    if appt.user_id != current_user.id:
         # Abort with simple response indicating forbidden.
         response = jsonify({'status': 'Forbidden'})
         response.status_code = 403
@@ -150,7 +158,3 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
-
-if __name__ == '__main__':
-    app.run()

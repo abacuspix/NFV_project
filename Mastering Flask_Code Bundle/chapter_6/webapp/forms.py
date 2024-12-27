@@ -1,11 +1,10 @@
-from flask_wtf import Form, RecaptchaField
+from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, TextAreaField, PasswordField, BooleanField
-from wtforms.validators import DataRequired, Length, EqualTo, URL
-
+from wtforms.validators import DataRequired, Length, EqualTo, URL, ValidationError
 from webapp.models import User
 
 
-class CommentForm(Form):
+class CommentForm(FlaskForm):
     name = StringField(
         'Name',
         validators=[DataRequired(), Length(max=255)]
@@ -13,62 +12,35 @@ class CommentForm(Form):
     text = TextAreaField(u'Comment', validators=[DataRequired()])
 
 
-class PostForm(Form):
-    title = StringField('Title', [DataRequired(), Length(max=255)])
-    text = TextAreaField('Content', [DataRequired()])
+class PostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(), Length(max=255)])
+    text = TextAreaField('Content', validators=[DataRequired()])
 
 
-class LoginForm(Form):
-    username = StringField('Username', [DataRequired(), Length(max=255)])
-    password = PasswordField('Password', [DataRequired()])
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(max=255)])
+    password = PasswordField('Password', validators=[DataRequired()])
     remember = BooleanField("Remember Me")
 
-    def validate(self):
-        check_validate = super(LoginForm, self).validate()
-
-        # if our validators do not pass
-        if not check_validate:
-            return False
-
-        # Does our the exist
-        user = User.query.filter_by(username=self.username.data).first()
-        if not user:
-            self.username.errors.append('Invalid username or password')
-            return False
-
-        # Do the passwords match
-        if not user.check_password(self.password.data):
-            self.username.errors.append('Invalid username or password')
-            return False
-
-        return True
+    def validate_username(self, field):
+        user = User.query.filter_by(username=field.data).first()
+        if not user or not user.check_password(self.password.data):
+            raise ValidationError('Invalid username or password')
 
 
-class OpenIDForm(Form):
-    openid = StringField('OpenID URL', [DataRequired(), URL()])
+class OpenIDForm(FlaskForm):
+    openid = StringField('OpenID URL', validators=[DataRequired(), URL()])
 
 
-class RegisterForm(Form):
-    username = StringField('Username', [DataRequired(), Length(max=255)])
-    password = PasswordField('Password', [DataRequired(), Length(min=8)])
-    confirm = PasswordField('Confirm Password', [
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(max=255)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
+    confirm = PasswordField('Confirm Password', validators=[
         DataRequired(),
-        EqualTo('password')
+        EqualTo('password', message="Passwords must match.")
     ])
     recaptcha = RecaptchaField()
 
-    def validate(self):
-        check_validate = super(RegisterForm, self).validate()
-
-        # if our validators do not pass
-        if not check_validate:
-            return False
-
-        user = User.query.filter_by(username=self.username.data).first()
-
-        # Is the username already being used
-        if user:
-            self.username.errors.append("User with that name already exists")
-            return False
-
-        return True
+    def validate_username(self, field):
+        if User.query.filter_by(username=field.data).first():
+            raise ValidationError("User with that name already exists")

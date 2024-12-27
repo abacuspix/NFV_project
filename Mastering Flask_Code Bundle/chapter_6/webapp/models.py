@@ -1,7 +1,6 @@
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.login import AnonymousUserMixin
-
-from webapp.extensions import bcrypt
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import AnonymousUserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
@@ -19,7 +18,7 @@ roles = db.Table(
 
 
 class User(db.Model):
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(255), unique=True)
     password = db.Column(db.String(255))
     posts = db.relationship('Post', backref='user', lazy='dynamic')
@@ -31,40 +30,37 @@ class User(db.Model):
 
     def __init__(self, username):
         self.username = username
-
-        default = Role.query.filter_by(name="default").one()
-        self.roles.append(default)
+        default = Role.query.filter_by(name="default").one_or_none()
+        if default:
+            self.roles.append(default)
 
     def __repr__(self):
-        return '<User {}>'.format(self.username)
+        return f'<User {self.username}>'
 
     def set_password(self, password):
-        self.password = bcrypt.generate_password_hash(password)
+        self.password = generate_password_hash(password)
 
     def check_password(self, password):
-        return bcrypt.check_password_hash(self.password, password)
+        return check_password_hash(self.password, password)
 
+    @property
     def is_authenticated(self):
-        if isinstance(self, AnonymousUserMixin):
-            return False
-        else:
-            return True
+        return not isinstance(self, AnonymousUserMixin)
 
+    @property
     def is_active(self):
         return True
 
+    @property
     def is_anonymous(self):
-        if isinstance(self, AnonymousUserMixin):
-            return True
-        else:
-            return False
+        return isinstance(self, AnonymousUserMixin)
 
     def get_id(self):
-        return unicode(self.id)
+        return str(self.id)
 
 
 class Role(db.Model):
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
     description = db.Column(db.String(255))
 
@@ -72,20 +68,16 @@ class Role(db.Model):
         self.name = name
 
     def __repr__(self):
-        return '<Role {}>'.format(self.name)
+        return f'<Role {self.name}>'
 
 
 class Post(db.Model):
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255))
-    text = db.Column(db.Text())
-    publish_date = db.Column(db.DateTime())
-    user_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
-    comments = db.relationship(
-        'Comment',
-        backref='post',
-        lazy='dynamic'
-    )
+    text = db.Column(db.Text)
+    publish_date = db.Column(db.DateTime)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    comments = db.relationship('Comment', backref='post', lazy='dynamic')
     tags = db.relationship(
         'Tag',
         secondary=tags,
@@ -96,26 +88,26 @@ class Post(db.Model):
         self.title = title
 
     def __repr__(self):
-        return "<Post '{}'>".format(self.title)
+        return f"<Post '{self.title}'>"
 
 
 class Comment(db.Model):
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
-    text = db.Column(db.Text())
-    date = db.Column(db.DateTime())
-    post_id = db.Column(db.Integer(), db.ForeignKey('post.id'))
+    text = db.Column(db.Text)
+    date = db.Column(db.DateTime)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
 
     def __repr__(self):
-        return "<Comment '{}'>".format(self.text[:15])
+        return f"<Comment '{self.text[:15]}'>"
 
 
 class Tag(db.Model):
-    id = db.Column(db.Integer(), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255))
 
     def __init__(self, title):
         self.title = title
 
     def __repr__(self):
-        return "<Tag '{}'>".format(self.title)
+        return f"<Tag '{self.title}'>"

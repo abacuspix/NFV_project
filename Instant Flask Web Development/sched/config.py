@@ -15,4 +15,3 @@ DEBUG = True
 SQLALCHEMY_DATABASE_URI = 'sqlite:///{}/sched.db'.format(PWD)
 SECRET_KEY = 'enydM2ANhdcoKwdVa0jWvEsbPFuQpMjf' # Create your own.
 SESSION_PROTECTION = 'strong'
-SQLALCHEMY_TRACK_MODIFICATIONS = True

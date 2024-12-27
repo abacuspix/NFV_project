@@ -1,17 +1,11 @@
 """Custom filters for Jinja templating. Load with init_app function."""
-
-from jinja2 import Markup, evalcontextfilter, escape
+from markupsafe import escape, Markup
+from jinja2 import pass_context
+from markupsafe import Markup, escape
 
 
 def init_app(app):
-    """Initialize a Flask application with filters defined in this module."""
-    app.jinja_env.filters['date'] = do_date
-    app.jinja_env.filters['datetime'] = do_datetime
-    app.jinja_env.filters['duration'] = do_duration
-
-    # The nl2br filter uses the Jinja environment's context to determine
-    # whether to autoescape
-    app.jinja_env.filters['nl2br'] = evalcontextfilter(do_nl2br)
+    app.jinja_env.filters['nl2br'] = do_nl2br
 
 
 def do_datetime(dt, format=None):
@@ -72,18 +66,8 @@ def do_duration(seconds):
     return template.format(d=d, h=h, m=m, s=s)
 
 
-def do_nl2br(context, value):
-    """Render newline \n characters as HTML line breaks <br />.
-
-    By default, HTML normalizes all whitespace on display. This filter allows
-    text with line breaks entered into a textarea input to later display in
-    HTML with line breaks.
-
-    The context argument is Jinja's state for template rendering, which
-    includes configuration. This filter inspects the context to determine
-    whether to auto-escape content, e.g. convert <script> to &lt;script&gt;.
-    """
-    formatted = u'<br />'.join(escape(value).split('\n'))
-    if context.autoescape:
-        formatted = Markup(formatted)
-    return formatted
+@pass_context
+def do_nl2br(ctx, value):
+    """Convert newlines to <br> tags."""
+    escaped_value = escape(value)
+    return Markup(escaped_value.replace('\n', '<br>'))
